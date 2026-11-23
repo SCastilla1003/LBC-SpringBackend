@@ -1,0 +1,9 @@
+target/
+*.iml
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+.env
+src/main/resources/application-local.properties

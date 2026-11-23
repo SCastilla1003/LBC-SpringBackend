@@ -1,0 +1,15 @@
+target/
+.git/
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+.mvn/
+mvnw
+mvnw.cmd
+uploads/
+docs/
+scripts/
+*.md
+*.env
