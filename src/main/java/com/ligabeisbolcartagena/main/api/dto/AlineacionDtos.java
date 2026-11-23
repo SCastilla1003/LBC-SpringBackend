@@ -52,7 +52,7 @@ public final class AlineacionDtos {
             @NotNull(message = "El jugador es obligatorio")
             Long jugadorId,
             @NotNull(message = "La posición es obligatoria")
-            @Pattern(regexp = ComunDtos.POSICION_BATEADOR_REGEX, message = "Posición no válida para bateador")
+            @Pattern(regexp = ComunDtos.POSICION_REGEX, message = "Posición no válida")
             String posicion) {
     }
 }

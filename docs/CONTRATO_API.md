@@ -183,7 +183,7 @@ Orden: `pct` descendente, y después `carrerasFavor - carrerasContra`.
 | GET | `/partidos/{id}/alineacion/pitcheo` | Igual que la anterior | Lanzador inicial y relevistas de cada equipo (botón de pitcheo) |
 | PUT | `/partidos/{id}/alineacion` | ADMIN o ANOTADOR | Guarda; con `publicar: true` pasa a `LINEUP_PUBLISHED` |
 
-Regla: el lanzador inicial **no va en el orden de bateo** (la liga usa DH). Los relevistas son los jugadores de la banca con lado de lanzamiento registrado.
+Regla: el lanzador inicial normalmente **no va en el orden de bateo** (la liga usa DH). Si batea, va en el orden de bateo con posición `P`; esa fila cuenta como su lanzador inicial. La posición `P` solo puede ser del lanzador inicial. Los relevistas son los jugadores de la banca con lado de lanzamiento registrado.
 
 Cuerpo de `PUT`:
 ```json

@@ -8,9 +8,6 @@ public final class ComunDtos {
     /** Posiciones defensivas admitidas en la plantilla y en la alineación. */
     public static final String POSICION_REGEX = "^(P|C|1B|2B|3B|SS|LF|CF|RF|DH)$";
 
-    /** Posiciones que puede ocupar un bateador en el orden de bateo (el lanzador va aparte). */
-    public static final String POSICION_BATEADOR_REGEX = "^(C|1B|2B|3B|SS|LF|CF|RF|DH)$";
-
     private ComunDtos() {
     }
 

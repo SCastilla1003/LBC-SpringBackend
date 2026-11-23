@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Alineaciones de cada partido. El lanzador inicial no va en el orden de bateo (la liga usa DH);
- * si un jugador está en el orden de bateo no puede ser lanzador inicial ni estar en la banca.
+ * Alineaciones de cada partido. El lanzador inicial normalmente no batea (la liga usa DH); si batea,
+ * va en el orden de bateo con posición P. Un jugador no puede aparecer dos veces en la alineación.
  */
 @Service
 public class AlineacionService {
@@ -131,6 +131,9 @@ public class AlineacionService {
                 errores.put(clave, "el jugador está repetido en la alineación");
                 continue;
             }
+            if (POSICION_LANZADOR.equals(b.posicion()) && !b.jugadorId().equals(eq.lanzadorInicial())) {
+                errores.put(clave, "la posición P solo puede ser del lanzador inicial");
+            }
             filas.add(fila(p, equipo, j, b.orden(), b.posicion(), true));
         }
         if (publicar && ordenes.size() != 9) {
@@ -148,9 +151,14 @@ public class AlineacionService {
                 errores.put(clave, "no está en la plantilla de " + equipo.getNombre() + " en esta temporada");
             } else if (lanzador.getLanza() == null) {
                 errores.put(clave, "el jugador no tiene lado de lanzamiento registrado");
-            } else if (!usados.add(lanzador.getId())) {
-                errores.put(clave, "el jugador ya está en el orden de bateo o en la banca");
+            } else if (usados.contains(lanzador.getId())) {
+                boolean batea = bateo.stream().anyMatch(b -> lanzador.getId().equals(b.jugadorId())
+                        && POSICION_LANZADOR.equals(b.posicion()));
+                if (!batea) {
+                    errores.put(clave, "el lanzador ya está en el orden de bateo con otra posición");
+                }
             } else {
+                usados.add(lanzador.getId());
                 filas.add(fila(p, equipo, lanzador, null, POSICION_LANZADOR, true));
             }
         }
