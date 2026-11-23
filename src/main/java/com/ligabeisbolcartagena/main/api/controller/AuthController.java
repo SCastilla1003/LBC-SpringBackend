@@ -35,7 +35,7 @@ public class AuthController {
         return authService.login(req.username(), req.password());
     }
 
-    /** Crea un usuario con rol USER y devuelve su JWT (queda con la sesión iniciada). */
+    /** Crea un usuario con rol FAN y devuelve su JWT (queda con la sesión iniciada). */
     @PostMapping("/registro")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse registro(@Valid @RequestBody RegistroRequest req) {

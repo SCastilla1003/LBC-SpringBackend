@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/yo").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/prediccion").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/v1/partidos/*/alineacion").hasAnyRole("ADMIN", "ANOTADOR")
                 .requestMatchers("/api/v1/**").hasRole("ADMIN")
                 .anyRequest().denyAll()
             )

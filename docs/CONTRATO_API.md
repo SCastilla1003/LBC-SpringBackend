@@ -145,6 +145,8 @@ Partido (lista, resumen):
 Partido (detalle) agrega:
 ```json
 { "entradasProgramadas": 9, "entradaActual": 9, "mitad": "BOTTOM",
+  "lineScore": { "entradasProgramadas": 9, "entradasExtra": false,
+                 "entradas": [ { "numero": 1, "local": 0, "visita": 2 }, { "numero": 2, "local": null, "visita": null } ] },
   "situacion": { "outs": 2, "bolas": 1, "strikes": 2,
                  "bateador": { "id": 17, "nombre": "Luis Calvo" },
                  "lanzador": { "id": 22, "nombre": "Pedro Ruiz" },
@@ -158,6 +160,13 @@ Creación (`POST`): `equipoLocalId`, `equipoVisitaId`, `fechaHora` obligatorios.
 Ciclo de vida:
 `SCHEDULED` → `LINEUP_PUBLISHED` (al publicar la alineación) → `LIVE` (el anotador inicia) → `FINISHED` (el anotador finaliza). `SUSPENDED` lo pone el admin.
 
+Marcador por entrada (`lineScore`), como en MLB:
+- Partido programado: tantas casillas vacías como entradas programadas.
+- En vivo: las entradas programadas (o más en extra innings); las entradas sin jugar llevan `null`.
+- Finalizado: solo las entradas jugadas. Un partido de 7 entradas muestra 7.
+- Si pasa de las entradas programadas, `entradasExtra` es `true` para que la app lo avise.
+- La columna `visita` corresponde a la mitad `TOP` y la `local` a la `BOTTOM`.
+
 Posiciones:
 ```json
 [{ "equipo": { "id": 4, "nombre": "Pelícanos de Bocagrande", "abreviatura": "PEL" },
@@ -170,8 +179,11 @@ Orden: `pct` descendente, y después `carrerasFavor - carrerasContra`.
 
 | Método | Ruta | Quién | Respuesta |
 |---|---|---|---|
-| GET | `/partidos/{id}/alineacion` | Público si está publicada; si no, ADMIN o ANOTADOR | Alineación |
+| GET | `/partidos/{id}/alineacion` | Público si está publicada; si no, ADMIN o ANOTADOR | Alineación completa: titulares y banca |
+| GET | `/partidos/{id}/alineacion/pitcheo` | Igual que la anterior | Lanzador inicial y relevistas de cada equipo (botón de pitcheo) |
 | PUT | `/partidos/{id}/alineacion` | ADMIN o ANOTADOR | Guarda; con `publicar: true` pasa a `LINEUP_PUBLISHED` |
+
+Regla: el lanzador inicial **no va en el orden de bateo** (la liga usa DH). Los relevistas son los jugadores de la banca con lado de lanzamiento registrado.
 
 Cuerpo de `PUT`:
 ```json
@@ -199,9 +211,11 @@ Respuesta de `GET`:
   "visita": { "...": "igual" } }
 ```
 
-## 9. Predicción (sin cambios en el contrato)
+## 9. Predicción
 
-`POST /prediccion` y `GET /prediccion/opciones` mantienen las entradas y la respuesta actuales. La implementación cambia a un servicio Python, pero la app no tiene que cambiar.
+`POST /prediccion` y `GET /prediccion/opciones` mantienen las mismas entradas y la misma respuesta. La API no calcula nada: reenvía la petición al servicio Python desplegado en Railway, cuya URL está en la variable `PREDICCION_URL`. Si la variable falta o el servicio no responde, la API devuelve `SERVICIO_NO_DISPONIBLE`.
+
+Contrato del servicio Python: `POST /predecir` y `GET /opciones`, con las mismas formas JSON.
 
 ## 10. Pendiente en otras fases
 
@@ -217,9 +231,10 @@ Respuesta de `GET`:
 - Roles: `USER` pasa a `FAN`.
 - Rutas: `/temporadas/{id}/bateadores` y `/lanzadores` desaparecen; se usan la plantilla, las alineaciones y los agentes libres.
 
-## 12. Preguntas para revisar
+## 12. Decisiones tomadas
 
-1. ¿Estás de acuerdo con IDs numéricos y los valores de enumeración en inglés (`ACTIVE`, `LIVE`…)? Flutter los mostraría en español.
-2. ¿`ganadorId` en el partido y la tabla de posiciones son suficientes, o necesitas también las carreras por entrada en el resumen?
-3. ¿La alineación pública debe incluir la banca completa o solo los titulares?
-4. ¿Confirmas que `POST /prediccion` sigue igual?
+- IDs numéricos y enumeraciones en inglés (`ACTIVE`, `LIVE`…). Flutter las traduce para mostrarlas.
+- La alineación pública incluye titulares **y** banca, más un endpoint aparte de pitcheo.
+- El marcador por entrada sigue el formato de MLB: 9 entradas en vivo; solo las jugadas al terminar; aviso si hay extra innings.
+- `POST /prediccion` se conecta al servicio Python con `PREDICCION_URL`.
+- La tabla de posiciones se calcula con los partidos `FINISHED` (no se guarda aparte).
