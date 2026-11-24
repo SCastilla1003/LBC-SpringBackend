@@ -26,6 +26,10 @@ public class Mapeador {
 
     private final ZoneId zona;
 
+    public ZoneId zona() {
+        return zona;
+    }
+
     public Mapeador(@Value("${lbc.zona-horaria:America/Bogota}") String zona) {
         this.zona = ZoneId.of(zona);
     }

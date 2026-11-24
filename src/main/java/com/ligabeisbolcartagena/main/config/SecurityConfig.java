@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/usuarios", "/api/v1/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/partidos/*/alineacion").hasAnyRole("ADMIN", "ANOTADOR")
+                .requestMatchers(HttpMethod.POST, "/api/v1/partidos/*/juego/**").hasAnyRole("ADMIN", "ANOTADOR")
                 .requestMatchers("/api/v1/**").hasRole("ADMIN")
                 .anyRequest().denyAll()
             )

@@ -181,7 +181,7 @@ public class PartidoService {
                 new ParLocalVisita(p.getCarrerasLocal(), p.getCarrerasVisita()), ganadorId(p));
     }
 
-    private PartidoDetalleDto detalle(Partido p) {
+    PartidoDetalleDto detalle(Partido p) {
         List<CarreraMitad> carreras = new ArrayList<>();
         for (Object[] fila : jugadas.carrerasPorEntrada(p.getId())) {
             carreras.add(new CarreraMitad(((Number) fila[0]).intValue(), (Mitad) fila[1],

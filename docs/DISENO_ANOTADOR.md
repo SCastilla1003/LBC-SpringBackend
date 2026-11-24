@@ -1,6 +1,6 @@
 # Diseño: anotador en vivo y estadísticas automáticas
 
-Estado: **propuesta para revisión**. El esquema está en `docs/esquema/V1__esquema_inicial.sql`.
+Estado: **implementado en línea** (ver `CONTRATO_API.md` §8b); falta el modo sin conexión y las estadísticas por jugador. El esquema está en `docs/esquema/V1__esquema_inicial.sql`.
 Base de datos: MySQL, empezando desde cero (sin migración desde MongoDB).
 
 ## 1. Decisiones tomadas
@@ -20,7 +20,7 @@ Base de datos: MySQL, empezando desde cero (sin migración desde MongoDB).
 3. **En vivo** (`LIVE`): el anotador inicia el partido. El sistema valida la alineación, pone al primer bateador del visitante y al lanzador local.
 4. **Finalizado** (`FINISHED`): se cierra el partido y se recalculan `standing` y `player_stat`.
 
-No se puede pasar a `LIVE` sin alineación completa.
+No se puede pasar a `LIVE` sin alineación completa (9 bateadores y lanzador por equipo). Publicarla antes es opcional: el partido ya es público como programado.
 
 ## 3. Cómo funciona el anotador
 

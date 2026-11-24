@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface JugadaRepository extends JpaRepository<Jugada, Long> {
 
@@ -12,4 +13,6 @@ public interface JugadaRepository extends JpaRepository<Jugada, Long> {
     @Query("select j.entrada, j.mitad, sum(j.carreras) from Jugada j "
             + "where j.partido.id = :partidoId group by j.entrada, j.mitad")
     List<Object[]> carrerasPorEntrada(@Param("partidoId") Long partidoId);
+
+    Optional<Jugada> findTopByPartidoIdOrderBySecuenciaDesc(Long partidoId);
 }

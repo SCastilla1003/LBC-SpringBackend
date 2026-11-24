@@ -246,6 +246,48 @@ Respuesta de `GET`:
   "visita": { "...": "igual" } }
 ```
 
+## 8b. Anotador en vivo
+
+Leer es público; escribir exige `ADMIN` o `ANOTADOR`. Cada escritura lleva `commandId` (UUID que genera
+la app: si se reintenta, no se aplica dos veces) y responde el estado completo ya actualizado.
+
+Un partido recién creado ya es público como `SCHEDULED`. Las alineaciones se pueden guardar incompletas
+y publicar cuando se tengan; **completas solo se exigen para iniciar**.
+
+| Método | Ruta | Cuerpo |
+|---|---|---|
+| GET | `/partidos/{id}/juego` | — |
+| POST | `/partidos/{id}/juego/iniciar` | `{commandId}` (pasa a `LIVE`; 400 con `detalles.faltantes` si falta alineación) |
+| POST | `/partidos/{id}/juego/lanzamiento` | `{commandId, tipo: BALL \| CALLED_STRIKE \| SWINGING_STRIKE \| FOUL}` (la 4.ª bola es base por bolas y el 3.er strike ponche) |
+| POST | `/partidos/{id}/juego/jugada` | `{commandId, resultado, movimientos?, errores?}` |
+| POST | `/partidos/{id}/juego/cambio` | `{commandId, tipo: PINCH_HITTER \| PINCH_RUNNER \| PITCHER \| DEFENSIVE, local, saleId, entraId, posicion?}` |
+| POST | `/partidos/{id}/juego/deshacer` | — (deshace la última acción, la que sea) |
+| POST | `/partidos/{id}/juego/finalizar` · `suspender` · `reanudar` | `{commandId}` |
+
+`resultado`: `SINGLE, DOUBLE, TRIPLE, HOME_RUN, WALK, HIT_BY_PITCH, STRIKEOUT, GROUND_OUT, FLY_OUT, LINE_OUT,
+POP_OUT, FIELDERS_CHOICE, REACHED_ON_ERROR, SACRIFICE_BUNT, SACRIFICE_FLY, DOUBLE_PLAY` (cierran el turno) y
+`STOLEN_BASE, CAUGHT_STEALING, WILD_PITCH, PASSED_BALL, BALK` (solo corredores).
+
+`movimientos`: `[{desde: 0..3, hasta: 1..4 | null}]` (0 = bateador, 4 = anota, null = out). Si no viene, se usa
+el avance típico de la jugada; los corredores que no aparecen se quedan en su base.
+
+Reglas automáticas: 3 outs cambian la mitad (el orden sigue donde quedó); el partido termina solo al
+completar las entradas programadas (o si el local se pone adelante en la baja de la última o posterior);
+empate = entradas extra. Simplificación: si la jugada hace el tercer out del bateador o forzado, sus
+carreras no cuentan.
+
+Respuesta (`EstadoJuegoDto`):
+
+```json
+{"partido": {/* PartidoDetalleDto */},
+ "local": {"equipo": {}, "orden": [{"orden": 1, "posicion": "SS", "jugador": {}}], "proximo": 4,
+           "lanzador": {}, "lanzamientos": 37, "disponibles": [{}]},
+ "visita": {},
+ "alineacionCompleta": true, "faltantes": [], "puedeDeshacer": true,
+ "jugadas": [{"id": 12, "tipo": "JUGADA", "descripcion": "Luis Calvo: doble. Anota Ana Pérez.",
+              "entrada": 3, "mitad": "TOP", "hora": "2026-12-05T15:42:10"}]}
+```
+
 ## 9. Predicción
 
 `POST /prediccion` y `GET /prediccion/opciones` mantienen las mismas entradas y la misma respuesta. La API no calcula nada: reenvía la petición al servicio Python desplegado en Railway, cuya URL está en la variable `PREDICCION_URL`. Si la variable falta o el servicio no responde, la API devuelve `SERVICIO_NO_DISPONIBLE`.
@@ -254,7 +296,7 @@ Contrato del servicio Python: `POST /predecir` y `GET /opciones`, con las mismas
 
 ## 10. Pendiente en otras fases
 
-- **Anotador en vivo** (`/anotador/partidos/{id}/...`): se define en `docs/DISENO_ANOTADOR.md`.
+- **Anotador sin conexión** (cola de comandos en el dispositivo): diseñado en `docs/DISENO_ANOTADOR.md`, no implementado.
 - **Estadísticas** (`/temporadas/{id}/estadisticas/bateo`, `/lanzadores`, `/jugadores/{id}/estadisticas`, `/partidos/{id}/box-score`): dependen de las jugadas.
 
 ## 11. Cambios que la app Flutter debe absorber
