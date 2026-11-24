@@ -35,6 +35,23 @@ Las reglas del anotador en vivo están en `docs/DISENO_ANOTADOR.md` y su API se 
 
 El token trae `roles` con uno de estos valores: `ADMIN`, `ANOTADOR`, `FAN`.
 
+Los permisos de cada petición salen del rol que el usuario tiene **en ese momento en la base de datos**
+(no del claim `roles`), así que un cambio de rol o una cuenta desactivada valen de inmediato.
+
+### 2b. Usuarios (solo ADMIN, también para leer)
+
+| Método | Ruta | Cuerpo | Respuesta |
+|---|---|---|---|
+| GET | `/usuarios` | — | Todos, los más recientes primero |
+| PUT | `/usuarios/{id}/rol` | `{"rol": "ADMIN" \| "ANOTADOR" \| "FAN"}` | El usuario actualizado |
+
+```json
+{"id": 7, "username": "ana@gmail.com", "email": "ana@gmail.com", "rol": "FAN",
+ "proveedor": "google", "activa": true, "creadoEn": "2026-11-24T10:15:00"}
+```
+
+`proveedor` es `local` (usuario y contraseña) o `google`. Un administrador no puede cambiar su propio rol (409).
+
 ## 3. Temporadas
 
 | Método | Ruta | Quién | Respuesta |

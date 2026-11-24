@@ -1,6 +1,7 @@
 package com.ligabeisbolcartagena.main.config;
 
 import com.ligabeisbolcartagena.main.security.RespuestasSeguridadJson;
+import com.ligabeisbolcartagena.main.security.RolesActuales;
 import com.ligabeisbolcartagena.main.service.UsuarioDetailsService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
@@ -24,8 +25,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -41,7 +40,8 @@ import java.util.List;
  * Seguridad stateless de la API:
  * - GET públicos (temporadas, equipos, jugadores, partidos, estadios, estadísticas, imágenes).
  * - POST /api/v1/auth/** y POST /api/v1/prediccion públicos.
- * - Cualquier otra escritura en /api/v1/** exige rol ADMIN (JWT Bearer).
+ * - /api/v1/usuarios (también GET) y cualquier otra escritura en /api/v1/** exigen rol ADMIN (JWT Bearer).
+ * - El rol se lee de la base de datos en cada petición (ver RolesActuales).
  * - Sin sesión, sin CSRF (no hay cookies), CORS configurable por variable de entorno.
  */
 @Configuration
@@ -52,7 +52,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain apiSecurityFilterChain(HttpSecurity http,
                                                RespuestasSeguridadJson respuestas,
-                                               JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+                                               RolesActuales rolesActuales) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> { }) // usa el bean CorsConfigurationSource
@@ -67,13 +67,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/registro", "/api/v1/auth/google").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/auth/yo").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/prediccion").permitAll()
+                // Los usuarios registrados no son públicos ni para leer.
+                .requestMatchers("/api/v1/usuarios", "/api/v1/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/partidos/*/alineacion").hasAnyRole("ADMIN", "ANOTADOR")
                 .requestMatchers("/api/v1/**").hasRole("ADMIN")
                 .anyRequest().denyAll()
             )
             .oauth2ResourceServer(rs -> rs
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(rolesActuales))
                 .authenticationEntryPoint(respuestas.noAutenticado())
                 .accessDeniedHandler(respuestas.accesoDenegado())
             )
@@ -129,16 +131,6 @@ public class SecurityConfig {
         return decoder;
     }
 
-    /** El claim "roles" (["ADMIN"]) se convierte en autoridades ROLE_ADMIN. */
-    @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
-        roles.setAuthoritiesClaimName("roles");
-        roles.setAuthorityPrefix("ROLE_");
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(roles);
-        return converter;
-    }
 
     // ------------------------------------------------------------------ login con usuario y contraseña
 
