@@ -28,10 +28,14 @@ public class PrediccionService {
             this.cliente = null;
             return;
         }
+        String base = url.trim();
+        if (!base.startsWith("http://") && !base.startsWith("https://")) {
+            base = "https://" + base;
+        }
         SimpleClientHttpRequestFactory factoria = new SimpleClientHttpRequestFactory();
         factoria.setConnectTimeout(3000);
         factoria.setReadTimeout(8000);
-        this.cliente = RestClient.builder().baseUrl(url).requestFactory(factoria).build();
+        this.cliente = RestClient.builder().baseUrl(base).requestFactory(factoria).build();
     }
 
     public PrediccionDto predecir(PrediccionRequest req) {
