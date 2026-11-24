@@ -1,6 +1,7 @@
 package com.ligabeisbolcartagena.main.api.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -11,6 +12,10 @@ public final class EquipoDtos {
 
     public record EquipoDto(Long id, String nombre, String abreviatura, String ciudad, String color,
                             String escudoUrl) {
+    }
+
+    /** Inscripción de un equipo en una temporada. */
+    public record InscripcionEquipoRequest(@NotNull(message = "El equipo es obligatorio") Long equipoId) {
     }
 
     public record EquipoRequest(

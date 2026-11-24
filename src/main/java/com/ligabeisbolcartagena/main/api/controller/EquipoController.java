@@ -3,6 +3,7 @@ package com.ligabeisbolcartagena.main.api.controller;
 import com.ligabeisbolcartagena.main.api.dto.ComunDtos.EquipoResumen;
 import com.ligabeisbolcartagena.main.api.dto.EquipoDtos.EquipoDto;
 import com.ligabeisbolcartagena.main.api.dto.EquipoDtos.EquipoRequest;
+import com.ligabeisbolcartagena.main.api.dto.EquipoDtos.InscripcionEquipoRequest;
 import com.ligabeisbolcartagena.main.service.EquipoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -58,5 +59,17 @@ public class EquipoController {
     @GetMapping("/temporadas/{id}/equipos")
     public List<EquipoResumen> deTemporada(@PathVariable Long id) {
         return equipos.deTemporada(id);
+    }
+
+    @PostMapping("/temporadas/{id}/equipos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EquipoResumen inscribir(@PathVariable Long id, @Valid @RequestBody InscripcionEquipoRequest req) {
+        return equipos.inscribir(id, req.equipoId());
+    }
+
+    @DeleteMapping("/temporadas/{id}/equipos/{equipoId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void desinscribir(@PathVariable Long id, @PathVariable Long equipoId) {
+        equipos.desinscribir(id, equipoId);
     }
 }

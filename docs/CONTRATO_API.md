@@ -66,7 +66,9 @@ Creación (`POST`):
 | POST | `/equipos` | ADMIN | Crea |
 | PUT | `/equipos/{id}` | ADMIN | Edita |
 | DELETE | `/equipos/{id}` | ADMIN | `409` si participa en partidos o plantillas |
-| GET | `/temporadas/{id}/equipos` | Público | Equipos con plantilla en la temporada |
+| GET | `/temporadas/{id}/equipos` | Público | Equipos inscritos en la temporada o con jugadores en su plantilla |
+| POST | `/temporadas/{id}/equipos` | ADMIN | Inscribe un equipo (`{ "equipoId": 4 }`), aunque no tenga jugadores. `409` si ya está |
+| DELETE | `/temporadas/{id}/equipos/{equipoId}` | ADMIN | Quita la inscripción. `409` si tiene jugadores o partidos en la temporada |
 
 Equipo:
 ```json
