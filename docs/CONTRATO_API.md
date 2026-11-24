@@ -76,7 +76,7 @@ Equipo:
 
 Creación: `nombre` y `abreviatura` obligatorios (`abreviatura` 2–5 letras, se guarda en mayúsculas). Conflicto si `nombre` o `abreviatura` ya existen.
 
-La foto del escudo se sube en una fase posterior, al bucket de Railway (`POST /equipos/{id}/escudo`).
+El escudo se sube al bucket de Railway: ver la sección 6b.
 
 ## 5. Jugadores y plantilla
 
@@ -121,6 +121,22 @@ Reglas:
 
 Estadio: `{ "id": 2, "nombre": "Parque de Pelota El Laguito", "ubicacion": "Cartagena" }`.
 `nombre` es único.
+
+## 6b. Fotos y escudos (bucket de Railway)
+
+| Método | Ruta | Quién | Respuesta |
+|---|---|---|---|
+| POST | `/jugadores/{id}/foto` | ADMIN | Multipart, campo `archivo` (JPG, PNG o WEBP, máx. 5 MB). Devuelve el jugador |
+| DELETE | `/jugadores/{id}/foto` | ADMIN | Quita la foto. Devuelve el jugador |
+| GET | `/jugadores/{id}/foto` | Público | La imagen |
+| POST | `/equipos/{id}/escudo` | ADMIN | Igual que la foto. Devuelve el equipo |
+| DELETE | `/equipos/{id}/escudo` | ADMIN | Quita el escudo. Devuelve el equipo |
+| GET | `/equipos/{id}/escudo` | Público | La imagen |
+
+- El bucket de Railway es privado: la API guarda la imagen en `jugadores/{id}` o `equipos/{id}` y la sirve ella misma.
+- `fotoUrl` y `escudoUrl` quedan como ruta de la API con versión, p. ej. `/api/v1/jugadores/17/foto?v=1732400000000`; cada subida cambia `v` para que las apps no muestren la imagen anterior desde caché.
+- El tipo se comprueba por el contenido del archivo, no por la extensión (`TIPO_NO_SOPORTADO` si no es imagen; `ARCHIVO_DEMASIADO_GRANDE` si pasa de 5 MB).
+- Si el bucket no está configurado, subir o ver responde `SERVICIO_NO_DISPONIBLE`.
 
 ## 7. Partidos
 
@@ -221,7 +237,6 @@ Contrato del servicio Python: `POST /predecir` y `GET /opciones`, con las mismas
 
 - **Anotador en vivo** (`/anotador/partidos/{id}/...`): se define en `docs/DISENO_ANOTADOR.md`.
 - **Estadísticas** (`/temporadas/{id}/estadisticas/bateo`, `/lanzadores`, `/jugadores/{id}/estadisticas`, `/partidos/{id}/box-score`): dependen de las jugadas.
-- **Fotos**: `POST /equipos/{id}/escudo` y `POST /jugadores/{id}/foto`, al bucket de Railway.
 
 ## 11. Cambios que la app Flutter debe absorber
 

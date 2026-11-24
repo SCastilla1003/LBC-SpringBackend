@@ -87,6 +87,7 @@ En el servicio de la API → **Variables** (usa *Raw Editor* para pegarlas junta
 | `JWT_EXPIRACION` | duración ISO-8601, p. ej. `PT24H` | No |
 | `ADMIN_USERNAME` | `adminlbc` | No |
 | `LBC_ZONA_HORARIA` | `America/Bogota` | No |
+| `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `REGION`, `ENDPOINT` | Las del bucket de Railway (pestaña *Credentials*): en la API, añádelas como variables de referencia al bucket | Solo para fotos de jugadores y escudos |
 
 Generar un `JWT_SECRET`:
 
