@@ -18,7 +18,8 @@ public final class JugadorDtos {
     }
 
     public record JugadorDto(Long id, String nombres, String apellidos, LocalDate fechaNacimiento, Integer edad,
-                             Jugador.LadoBateo batea, Jugador.LadoLanzamiento lanza, String fotoUrl) {
+                             Jugador.LadoBateo batea, Jugador.LadoLanzamiento lanza, String fotoUrl,
+                             boolean esLanzador) {
     }
 
     public record JugadorRequest(
@@ -31,6 +32,8 @@ public final class JugadorDtos {
             LocalDate fechaNacimiento,
             Jugador.LadoBateo batea,
             Jugador.LadoLanzamiento lanza,
+            /** Es pitcher. Nulo: al crear, se toma como pitcher si trae mano de lanzar; al editar, no cambia. */
+            Boolean esLanzador,
             @Size(max = 500, message = "La URL de la foto es demasiado larga")
             String fotoUrl) {
     }

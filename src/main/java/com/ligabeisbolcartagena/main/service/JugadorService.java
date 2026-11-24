@@ -67,6 +67,11 @@ public class JugadorService {
         j.setFechaNacimiento(req.fechaNacimiento());
         j.setBatea(req.batea());
         j.setLanza(req.lanza());
+        if (req.esLanzador() != null) {
+            j.setEsLanzador(req.esLanzador());
+        } else if (j.getId() == null) {
+            j.setEsLanzador(req.lanza() != null);
+        }
         j.setFotoUrl(req.fotoUrl());
     }
 }

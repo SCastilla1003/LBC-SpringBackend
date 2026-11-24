@@ -149,8 +149,8 @@ public class AlineacionService {
             String clave = lado + ".lanzadorInicial";
             if (lanzador == null) {
                 errores.put(clave, "no está en la plantilla de " + equipo.getNombre() + " en esta temporada");
-            } else if (lanzador.getLanza() == null) {
-                errores.put(clave, "el jugador no tiene lado de lanzamiento registrado");
+            } else if (!lanzador.isEsLanzador()) {
+                errores.put(clave, "el jugador no está marcado como lanzador (pitcher)");
             } else if (usados.contains(lanzador.getId())) {
                 boolean batea = bateo.stream().anyMatch(b -> lanzador.getId().equals(b.jugadorId())
                         && POSICION_LANZADOR.equals(b.posicion()));
@@ -205,7 +205,7 @@ public class AlineacionService {
     private EquipoPitcheoDto equipoPitcheo(Equipo equipo, List<PosicionAlineacion> filas) {
         List<JugadorResumen> relevistas = filas.stream()
                 .filter(f -> f.getEquipo().getId().equals(equipo.getId()) && !f.isTitular()
-                        && f.getJugador().getLanza() != null)
+                        && f.getJugador().isEsLanzador())
                 .map(f -> mapeador.res(f.getJugador()))
                 .toList();
         return new EquipoPitcheoDto(mapeador.res(equipo), lanzadorInicial(equipo, filas), relevistas);

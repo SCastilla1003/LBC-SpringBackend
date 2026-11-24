@@ -55,7 +55,7 @@ public class Mapeador {
         Integer edad = j.getFechaNacimiento() == null ? null
                 : Period.between(j.getFechaNacimiento(), LocalDate.now(zona)).getYears();
         return new JugadorDto(j.getId(), j.getNombres(), j.getApellidos(), j.getFechaNacimiento(), edad,
-                j.getBatea(), j.getLanza(), j.getFotoUrl());
+                j.getBatea(), j.getLanza(), j.getFotoUrl(), j.isEsLanzador());
     }
 
     public JugadorResumen res(Jugador j) {
@@ -63,7 +63,7 @@ public class Mapeador {
             return null;
         }
         return new JugadorResumen(j.getId(), j.getNombres(), j.getApellidos(), j.getBatea(), j.getLanza(),
-                j.getFotoUrl());
+                j.getFotoUrl(), j.isEsLanzador());
     }
 
     public JugadorRef ref(Jugador j) {

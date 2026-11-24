@@ -15,7 +15,7 @@ public final class ComunDtos {
     }
 
     public record JugadorResumen(Long id, String nombres, String apellidos, Jugador.LadoBateo batea,
-                                 Jugador.LadoLanzamiento lanza, String fotoUrl) {
+                                 Jugador.LadoLanzamiento lanza, String fotoUrl, boolean esLanzador) {
     }
 
     public record JugadorRef(Long id, String nombre) {

@@ -288,6 +288,30 @@ Respuesta (`EstadoJuegoDto`):
               "entrada": 3, "mitad": "TOP", "hora": "2026-12-05T15:42:10"}]}
 ```
 
+## 8c. Estadísticas (públicas, calculadas con las jugadas del anotador)
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/temporadas/{t}/jugadores/{j}/estadisticas` | `{jugador, temporada: {bateo, pitcheo}, carrera: {bateo, pitcheo}}` (null = sin datos) |
+| GET | `/temporadas/{t}/estadisticas/bateo` | `[{jugador, equipo, bateo}]` |
+| GET | `/temporadas/{t}/estadisticas/pitcheo` | `[{jugador, equipo, pitcheo}]` |
+| GET | `/enfrentamientos?bateadorId=&lanzadorId=&temporadaId=` | Historial directo (todas las temporadas) y pronóstico |
+
+`bateo`: juegos, pa, ab, h, dobles, triples, hr, carreras, rbi, bb, hbp, so, sb, cs, sf, sh, avg, obp, slg, ops.
+`pitcheo`: juegos, iniciados, ganados, perdidos, outs, ip ("5.2"), bateadores, hits, carreras, limpias, bb, hbp,
+so, hr, lanzamientos, era, whip, k9, bb9, promedioContra. Incluye los partidos en vivo.
+
+Pronóstico del enfrentamiento: probabilidad de hit, de embasarse y de ponche con el método log5 (bateador,
+lanzador y liga), acercando a la liga cuando hay pocos datos y mezclando con el historial directo.
+
+Simplificaciones: las carreras se cargan al lanzador que estaba lanzando; no son limpias las que entran en la
+jugada de un error ni las de corredores que llegaron por error en esa mitad; impulsadas = carreras de la jugada
+salvo doble play o error; el perdedor es quien lanzaba cuando el ganador tomó la ventaja definitiva y el
+ganador, el último lanzador del equipo ganador antes de esa jugada (o su abridor).
+
+Jugador: `lanza` es la mano con la que lanza (D/Z) y `esLanzador` indica si es pitcher (solo los pitchers
+pueden ser lanzador inicial o relevista en la alineación).
+
 ## 9. Predicción
 
 `POST /prediccion` y `GET /prediccion/opciones` mantienen las mismas entradas y la misma respuesta. La API no calcula nada: reenvía la petición al servicio Python desplegado en Railway, cuya URL está en la variable `PREDICCION_URL`. Si la variable falta o el servicio no responde, la API devuelve `SERVICIO_NO_DISPONIBLE`.
@@ -297,7 +321,7 @@ Contrato del servicio Python: `POST /predecir` y `GET /opciones`, con las mismas
 ## 10. Pendiente en otras fases
 
 - **Anotador sin conexión** (cola de comandos en el dispositivo): diseñado en `docs/DISENO_ANOTADOR.md`, no implementado.
-- **Estadísticas** (`/temporadas/{id}/estadisticas/bateo`, `/lanzadores`, `/jugadores/{id}/estadisticas`, `/partidos/{id}/box-score`): dependen de las jugadas.
+- **Box score por partido** (`/partidos/{id}/box-score`).
 
 ## 11. Cambios que la app Flutter debe absorber
 

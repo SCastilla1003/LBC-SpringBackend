@@ -37,6 +37,10 @@ public class Jugador {
     @Enumerated(EnumType.STRING)
     private LadoLanzamiento lanza;
 
+    /** Es pitcher. [lanza] es solo la mano con la que lanza (la tienen todos). */
+    @Column(name = "es_lanzador", nullable = false)
+    private boolean esLanzador;
+
     /** URL de la foto en el bucket de Railway. */
     @Column(name = "foto_url")
     private String fotoUrl;
@@ -53,6 +57,8 @@ public class Jugador {
     public void setBatea(LadoBateo batea) { this.batea = batea; }
     public LadoLanzamiento getLanza() { return lanza; }
     public void setLanza(LadoLanzamiento lanza) { this.lanza = lanza; }
+    public boolean isEsLanzador() { return esLanzador; }
+    public void setEsLanzador(boolean esLanzador) { this.esLanzador = esLanzador; }
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
 }
