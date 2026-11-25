@@ -66,8 +66,13 @@ Los permisos de cada petición salen del rol que el usuario tiene **en ese momen
 Temporada:
 ```json
 { "id": 1, "nombre": "Temporada 2026", "anio": 2026, "estado": "ACTIVE",
-  "fechaInicio": "2026-01-10", "fechaFin": "2026-06-30" }
+  "fechaInicio": "2026-01-10", "fechaFin": "2026-06-30", "basesMuerteSubita": [2] }
 ```
+
+`basesMuerteSubita`: bases (1, 2, 3) donde salen corredores automáticos al empezar cada entrada extra.
+`[]` = ninguno, `[2]` = uno en segunda (por defecto), `[1, 2]` = en primera y segunda. En la base más
+adelantada va el último que bateó en la entrada anterior de ese equipo; en la siguiente, el que bateó antes.
+En `POST`/`PUT` es opcional (si no viene, no cambia).
 
 Creación (`POST`):
 - `nombre` obligatorio. `anio` obligatorio (1900–2100). `estado` opcional, por defecto `DRAFT`.
@@ -174,8 +179,13 @@ Partido (lista, resumen):
   "estadio": { "id": 2, "nombre": "Parque de Pelota El Laguito", "ubicacion": "Cartagena" },
   "equipoLocal": { "id": 4, "nombre": "Pelícanos de Bocagrande", "abreviatura": "PEL", "color": "azul", "escudoUrl": null },
   "equipoVisita": { "id": 5, "nombre": "Corsarios de Turbaco", "abreviatura": "COR", "color": "verde", "escudoUrl": null },
-  "marcador": { "local": 8, "visita": 6 }, "ganadorId": 4 }
+  "marcador": { "local": 8, "visita": 6 }, "ganadorId": 4,
+  "motivo": null, "finalEspecial": "WALK_OFF" }
 ```
+
+- `motivo`: por qué se detuvo (`RETRASADO`, `POSPUESTO`, `CANCELADO`) o `null`. Con `estado: SUSPENDED` el
+  administrador aún no decide; con `FINISHED` lo dejó así (si va empatado no cuenta en posiciones).
+- `finalEspecial`: `WALK_OFF`, `WALK_OFF_HOME_RUN` o `WALK_OFF_GRAND_SLAM` si el local ganó en su último turno.
 
 Partido (detalle) agrega:
 ```json
@@ -262,7 +272,9 @@ y publicar cuando se tengan; **completas solo se exigen para iniciar**.
 | POST | `/partidos/{id}/juego/jugada` | `{commandId, resultado, movimientos?, errores?}` |
 | POST | `/partidos/{id}/juego/cambio` | `{commandId, tipo: PINCH_HITTER \| PINCH_RUNNER \| PITCHER \| DEFENSIVE, local, saleId, entraId, posicion?}` |
 | POST | `/partidos/{id}/juego/deshacer` | — (deshace la última acción, la que sea) |
-| POST | `/partidos/{id}/juego/finalizar` · `suspender` · `reanudar` | `{commandId}` |
+| POST | `/partidos/{id}/juego/finalizar` · `reanudar` | `{commandId}` (no se puede finalizar empatado; `reanudar` solo sin `motivo`) |
+| POST | `/partidos/{id}/juego/suspender` | `{commandId, motivo?: RETRASADO \| POSPUESTO \| CANCELADO}` |
+| POST | `/partidos/{id}/juego/decidir` | **ADMIN**. `{commandId, continuar}`: `true` vuelve a `LIVE`, `false` lo deja así (`FINISHED` con su `motivo`) |
 
 `resultado`: `SINGLE, DOUBLE, TRIPLE, HOME_RUN, WALK, HIT_BY_PITCH, STRIKEOUT, GROUND_OUT, FLY_OUT, LINE_OUT,
 POP_OUT, FIELDERS_CHOICE, REACHED_ON_ERROR, SACRIFICE_BUNT, SACRIFICE_FLY, DOUBLE_PLAY` (cierran el turno) y
@@ -273,8 +285,10 @@ el avance típico de la jugada; los corredores que no aparecen se quedan en su b
 
 Reglas automáticas: 3 outs cambian la mitad (el orden sigue donde quedó); el partido termina solo al
 completar las entradas programadas (o si el local se pone adelante en la baja de la última o posterior);
-empate = entradas extra. Simplificación: si la jugada hace el tercer out del bateador o forzado, sus
-carreras no cuentan.
+empate = entradas extra (no hay empates), cada una con los corredores de la muerte súbita de la temporada.
+Walk off: cuando el local pasa adelante en la baja de la última o posterior, el partido se acaba en esa
+jugada y solo cuentan las carreras necesarias para ganar (en el jonrón anotan todos). Simplificación: si
+la jugada hace el tercer out del bateador o forzado, sus carreras no cuentan.
 
 Respuesta (`EstadoJuegoDto`):
 

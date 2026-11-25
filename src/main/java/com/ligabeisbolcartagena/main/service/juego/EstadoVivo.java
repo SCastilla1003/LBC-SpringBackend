@@ -31,6 +31,12 @@ public class EstadoVivo {
     public int hitsVisita;
     public int erroresLocal;
     public int erroresVisita;
+    /** Por qué está detenido (null = no lo está o no se dijo). */
+    public Partido.Motivo motivo;
+    /** Walk off con el que terminó, si fue así. */
+    public Partido.FinalEspecial finalEspecial;
+    /** Bases (1..3) donde salen corredores automáticos en las entradas extra. */
+    public int[] basesMuerteSubita = new int[0];
 
     public boolean bateaLocal() {
         return mitad == Mitad.BOTTOM;
@@ -98,6 +104,11 @@ public class EstadoVivo {
         s.hitsVisita = p.getHitsVisita();
         s.erroresLocal = p.getErroresLocal();
         s.erroresVisita = p.getErroresVisita();
+        s.motivo = p.getMotivo();
+        s.finalEspecial = p.getFinalEspecial();
+        if (p.getTemporada() != null) {
+            s.basesMuerteSubita = p.getTemporada().basesMuerteSubita().stream().mapToInt(Integer::intValue).toArray();
+        }
         return s;
     }
 
@@ -122,6 +133,8 @@ public class EstadoVivo {
         p.setHitsVisita(hitsVisita);
         p.setErroresLocal(erroresLocal);
         p.setErroresVisita(erroresVisita);
+        p.setMotivo(motivo);
+        p.setFinalEspecial(finalEspecial);
     }
 
     private static Long id(Jugador j) {

@@ -22,6 +22,12 @@ public class Partido {
 
     public enum Estado { SCHEDULED, LINEUP_PUBLISHED, LIVE, FINISHED, SUSPENDED }
 
+    /** Por qué se detuvo el partido. El administrador decide luego si sigue o se deja así. */
+    public enum Motivo { RETRASADO, POSPUESTO, CANCELADO }
+
+    /** Cómo terminó un partido que el local ganó en su último turno. */
+    public enum FinalEspecial { WALK_OFF, WALK_OFF_HOME_RUN, WALK_OFF_GRAND_SLAM }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -89,6 +95,14 @@ public class Partido {
     @JoinColumn(name = "corredor_3b_id")
     private Jugador corredor3b;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motivo_detencion")
+    private Motivo motivo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "final_especial")
+    private FinalEspecial finalEspecial;
+
     /** Siguiente turno del orden de bateo (1..9) de cada equipo. */
     private int proximoOrdenLocal = 1;
     private int proximoOrdenVisita = 1;
@@ -153,6 +167,10 @@ public class Partido {
     public void setProximoOrdenLocal(int proximoOrdenLocal) { this.proximoOrdenLocal = proximoOrdenLocal; }
     public int getProximoOrdenVisita() { return proximoOrdenVisita; }
     public void setProximoOrdenVisita(int proximoOrdenVisita) { this.proximoOrdenVisita = proximoOrdenVisita; }
+    public Motivo getMotivo() { return motivo; }
+    public void setMotivo(Motivo motivo) { this.motivo = motivo; }
+    public FinalEspecial getFinalEspecial() { return finalEspecial; }
+    public void setFinalEspecial(FinalEspecial finalEspecial) { this.finalEspecial = finalEspecial; }
     public UsuarioCuenta getAnotador() { return anotador; }
     public void setAnotador(UsuarioCuenta anotador) { this.anotador = anotador; }
     public Long getVersion() { return version; }

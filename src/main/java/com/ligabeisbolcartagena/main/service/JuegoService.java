@@ -289,6 +289,10 @@ public class JuegoService {
             if (s.estado != Partido.Estado.LIVE && s.estado != Partido.Estado.SUSPENDED) {
                 throw ApiException.conflicto("Solo se puede finalizar un partido en juego o suspendido");
             }
+            if (s.carrerasLocal == s.carrerasVisita) {
+                throw ApiException.invalida("En el béisbol no hay empates. Si el partido no puede seguir, "
+                        + "detenlo indicando si es retrasado, pospuesto o cancelado.");
+            }
             MotorJuego.terminar(s);
             a.setDescripcion("Final del partido: " + p.getEquipoVisita().getAbreviatura() + " " + s.carrerasVisita
                     + ", " + p.getEquipoLocal().getAbreviatura() + " " + s.carrerasLocal + ".");
@@ -296,13 +300,37 @@ public class JuegoService {
     }
 
     @Transactional
-    public EstadoJuegoDto suspender(Long id, String commandId, String usuario) {
+    public EstadoJuegoDto suspender(Long id, String commandId, Partido.Motivo motivo, String usuario) {
         return ejecutar(id, commandId, usuario, "SUSPENSION", (p, s, c, a) -> {
             if (s.estado != Partido.Estado.LIVE) {
-                throw ApiException.conflicto("Solo se puede suspender un partido en vivo");
+                throw ApiException.conflicto("Solo se puede detener un partido en vivo");
             }
             s.estado = Partido.Estado.SUSPENDED;
-            a.setDescripcion("Partido suspendido.");
+            s.motivo = motivo;
+            a.setDescripcion(motivo == null ? "Partido suspendido."
+                    : "Partido " + etiqueta(motivo) + " con el marcador " + marcador(p, s)
+                            + ". El administrador decidirá si continúa o se deja así.");
+        });
+    }
+
+    /** El administrador decide qué pasa con un partido detenido: continuarlo o dejarlo así. */
+    @Transactional
+    public EstadoJuegoDto decidir(Long id, String commandId, boolean continuar, String usuario) {
+        return ejecutar(id, commandId, usuario, "DECISION", (p, s, c, a) -> {
+            if (s.estado != Partido.Estado.SUSPENDED) {
+                throw ApiException.conflicto("El partido no está detenido");
+            }
+            if (continuar) {
+                s.estado = Partido.Estado.LIVE;
+                s.motivo = null;
+                a.setDescripcion("El administrador decide continuar el partido. ¡Se reanuda!");
+            } else {
+                Partido.Motivo motivo = s.motivo == null ? Partido.Motivo.CANCELADO : s.motivo;
+                MotorJuego.terminar(s);
+                s.motivo = motivo;
+                a.setDescripcion("El administrador deja el partido así (" + etiqueta(motivo) + "): "
+                        + marcador(p, s) + ".");
+            }
         });
     }
 
@@ -311,6 +339,10 @@ public class JuegoService {
         return ejecutar(id, commandId, usuario, "REANUDACION", (p, s, c, a) -> {
             if (s.estado != Partido.Estado.SUSPENDED) {
                 throw ApiException.conflicto("El partido no está suspendido");
+            }
+            if (s.motivo != null) {
+                throw ApiException.conflicto("El partido está " + etiqueta(s.motivo)
+                        + ": el administrador decide si continúa o se deja así");
             }
             s.estado = Partido.Estado.LIVE;
             a.setDescripcion("Se reanuda el partido.");
@@ -444,6 +476,9 @@ public class JuegoService {
             List<String> nombres = res.anotaron().stream().map(c::nombre).toList();
             t.append(nombres.size() == 1 ? " Anota " : " Anotan ").append(String.join(", ", nombres)).append('.');
         }
+        if (res.finPartido() && s.finalEspecial != null) {
+            t.append(" ¡").append(etiqueta(s.finalEspecial)).append('!');
+        }
         if (res.finPartido()) {
             t.append(" ¡Final del partido! ").append(p.getEquipoVisita().getAbreviatura()).append(' ')
                     .append(s.carrerasVisita).append(", ").append(p.getEquipoLocal().getAbreviatura()).append(' ')
@@ -451,6 +486,15 @@ public class JuegoService {
         } else if (res.cambioMitad()) {
             t.append(" Fin de la ").append(mitad == Mitad.TOP ? "alta" : "baja").append(" del ").append(entrada)
                     .append('.');
+            List<String> automaticos = new ArrayList<>();
+            for (int base = 3; base >= 1; base--) {
+                if (s.bases[base] != null) {
+                    automaticos.add(c.nombre(s.bases[base]) + " en " + MotorJuego.nombreBase(base));
+                }
+            }
+            if (!automaticos.isEmpty()) {
+                t.append(" Muerte súbita: ").append(String.join(", ", automaticos)).append('.');
+            }
         }
         return t.toString();
     }
@@ -518,6 +562,27 @@ public class JuegoService {
             Jugador j = id == null ? null : jugadores.get(id);
             return j == null ? "?" : j.getNombres() + " " + j.getApellidos();
         }
+    }
+
+    private static String marcador(Partido p, EstadoVivo s) {
+        return p.getEquipoVisita().getAbreviatura() + " " + s.carrerasVisita + ", "
+                + p.getEquipoLocal().getAbreviatura() + " " + s.carrerasLocal;
+    }
+
+    static String etiqueta(Partido.Motivo m) {
+        return switch (m) {
+            case RETRASADO -> "retrasado";
+            case POSPUESTO -> "pospuesto";
+            case CANCELADO -> "cancelado";
+        };
+    }
+
+    static String etiqueta(Partido.FinalEspecial f) {
+        return switch (f) {
+            case WALK_OFF -> "WALK OFF";
+            case WALK_OFF_HOME_RUN -> "WALK OFF HOME RUN";
+            case WALK_OFF_GRAND_SLAM -> "WALK OFF GRAND SLAM";
+        };
     }
 
     static String etiqueta(Lanzamiento.Tipo t) {

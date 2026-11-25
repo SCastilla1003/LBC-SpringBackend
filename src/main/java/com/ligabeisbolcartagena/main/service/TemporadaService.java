@@ -76,6 +76,13 @@ public class TemporadaService {
             throw ApiException.invalida("La fecha de fin no puede ser anterior a la de inicio",
                     Map.of("fechaFin", "anterior a fechaInicio"));
         }
+        if (req.basesMuerteSubita() != null) {
+            List<Integer> bases = req.basesMuerteSubita();
+            if (bases.stream().anyMatch(b -> b == null || b < 1 || b > 3) || bases.stream().distinct().count() != bases.size()) {
+                throw ApiException.invalida("Las bases de la muerte súbita deben ser primera (1), segunda (2) o tercera (3), sin repetir",
+                        Map.of("basesMuerteSubita", "no válidas"));
+            }
+        }
         String nombre = req.nombre().trim();
         boolean repetida = id == null
                 ? temporadas.existsByNombreAndAnio(nombre, req.anio())
@@ -93,5 +100,9 @@ public class TemporadaService {
         }
         t.setFechaInicio(req.fechaInicio());
         t.setFechaFin(req.fechaFin());
+        if (req.basesMuerteSubita() != null) {
+            t.setBasesMuerteSubita(req.basesMuerteSubita().stream().sorted().map(String::valueOf)
+                    .collect(java.util.stream.Collectors.joining(",")));
+        }
     }
 }

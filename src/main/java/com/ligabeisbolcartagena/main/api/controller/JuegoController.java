@@ -2,6 +2,8 @@ package com.ligabeisbolcartagena.main.api.controller;
 
 import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.CambioRequest;
 import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.ComandoRequest;
+import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.DecisionRequest;
+import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.SuspensionRequest;
 import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.EstadoJuegoDto;
 import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.JugadaRequest;
 import com.ligabeisbolcartagena.main.api.dto.JuegoDtos.LanzamientoRequest;
@@ -71,9 +73,16 @@ public class JuegoController {
     }
 
     @PostMapping("/suspender")
-    public EstadoJuegoDto suspender(@PathVariable Long id, @Valid @RequestBody ComandoRequest req,
+    public EstadoJuegoDto suspender(@PathVariable Long id, @Valid @RequestBody SuspensionRequest req,
                                     @AuthenticationPrincipal Jwt jwt) {
-        return juego.suspender(id, req.commandId(), jwt.getSubject());
+        return juego.suspender(id, req.commandId(), req.motivo(), jwt.getSubject());
+    }
+
+    /** Solo ADMIN: continuar un partido retrasado, pospuesto o cancelado, o dejarlo así. */
+    @PostMapping("/decidir")
+    public EstadoJuegoDto decidir(@PathVariable Long id, @Valid @RequestBody DecisionRequest req,
+                                  @AuthenticationPrincipal Jwt jwt) {
+        return juego.decidir(id, req.commandId(), req.continuar(), jwt.getSubject());
     }
 
     @PostMapping("/reanudar")

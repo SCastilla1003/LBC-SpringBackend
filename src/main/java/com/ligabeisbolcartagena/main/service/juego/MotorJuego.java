@@ -23,6 +23,12 @@ import static com.ligabeisbolcartagena.main.dominio.Jugada.Resultado.*;
  *
  * Simplificación: si la jugada hace el tercer out y ese out es del bateador o es forzado
  * (rolata, bola ocupada, doble play, atrapado robando), las carreras de la jugada no cuentan.
+ *
+ * En béisbol no hay empates: si las entradas programadas terminan igualadas se juegan extra, y
+ * en cada entrada extra salen corredores automáticos (muerte súbita) en las bases que diga la
+ * temporada. Walk off: en la baja de la última entrada (o de una extra), cuando el local pasa
+ * adelante el partido se acaba en esa jugada y solo cuentan las carreras necesarias para ganar,
+ * salvo en el jonrón, donde anotan todos.
  */
 public final class MotorJuego {
 
@@ -78,6 +84,8 @@ public final class MotorJuego {
         s.hitsVisita = 0;
         s.erroresLocal = 0;
         s.erroresVisita = 0;
+        s.motivo = null;
+        s.finalEspecial = null;
         s.bateador = a.bateadorEn(false, 1);
         s.lanzador = a.lanzadorDe(true);
     }
@@ -249,14 +257,20 @@ public final class MotorJuego {
         }
         Long[] nuevas = new Long[4];
         List<Long> anotaron = new ArrayList<>();
+        List<Integer> anotaronDesde = new ArrayList<>();
         int outs = 0;
-        for (Map.Entry<Integer, Integer> e : destino.entrySet()) {
-            Long jugador = e.getKey() == 0 ? s.bateador : s.bases[e.getKey()];
-            int d = e.getValue();
+        // De tercera hacia el bateador: así las carreras quedan en el orden en que entran.
+        for (int desde = 3; desde >= 0; desde--) {
+            Integer d = destino.get(desde);
+            if (d == null) {
+                continue;
+            }
+            Long jugador = desde == 0 ? s.bateador : s.bases[desde];
             if (d == -1) {
                 outs++;
             } else if (d == 4) {
                 anotaron.add(jugador);
+                anotaronDesde.add(desde);
             } else {
                 if (nuevas[d] != null) {
                     throw ApiException.invalida("Dos corredores no pueden quedar en " + nombreBase(d));
@@ -293,6 +307,22 @@ public final class MotorJuego {
             anotaron = List.of();
         }
 
+        // Walk off: el local pasa adelante en su último turno. Solo cuentan las carreras que hacen
+        // falta para ganar (la del triunfo entra primero), salvo en el jonrón, que anotan todos.
+        int paraGanar = s.carrerasVisita - s.carrerasLocal + 1;
+        boolean walkOff = local && s.entrada >= s.entradasProgramadas && paraGanar >= 1 && carreras >= paraGanar;
+        if (walkOff && r != HOME_RUN && carreras > paraGanar) {
+            carreras = paraGanar;
+            anotaron = anotaron.subList(0, paraGanar);
+            List<Integer> cuentan = anotaronDesde.subList(0, paraGanar);
+            List<Movimiento> ajustados = new ArrayList<>();
+            for (Movimiento m : movs) {
+                boolean noCuenta = !m.esOut() && m.hasta() == 4 && !cuentan.contains(m.desde());
+                ajustados.add(noCuenta ? Movimiento.a(m.desde(), Math.max(m.desde(), 3)) : m);
+            }
+            movs = ajustados;
+        }
+
         Map<Integer, Long> corredores = new HashMap<>();
         for (int base = 1; base <= 3; base++) {
             if (s.bases[base] != null) {
@@ -319,8 +349,10 @@ public final class MotorJuego {
 
         boolean cambio = false;
         boolean fin = false;
-        if (local && s.entrada >= s.entradasProgramadas && s.carrerasLocal > s.carrerasVisita) {
+        if (walkOff) {
             terminar(s); // el local deja en el terreno al visitante
+            s.finalEspecial = r != HOME_RUN ? Partido.FinalEspecial.WALK_OFF
+                    : carreras == 4 ? Partido.FinalEspecial.WALK_OFF_GRAND_SLAM : Partido.FinalEspecial.WALK_OFF_HOME_RUN;
             fin = true;
         } else if (s.outs >= 3) {
             fin = !cambiarMitad(s, a);
@@ -357,7 +389,33 @@ public final class MotorJuego {
         boolean local = s.bateaLocal();
         s.bateador = a.bateadorEn(local, s.proximo(local));
         s.lanzador = a.lanzadorDe(!local);
+        if (s.entrada > s.entradasProgramadas) {
+            ponerCorredoresMuerteSubita(s, a, local);
+        }
         return true;
+    }
+
+    /**
+     * Muerte súbita: en la base más adelantada va el último que bateó en la entrada anterior de
+     * ese equipo, en la siguiente el que bateó antes que él, y así.
+     */
+    static void ponerCorredoresMuerteSubita(EstadoVivo s, Alineaciones a, boolean local) {
+        if (s.basesMuerteSubita == null) {
+            return;
+        }
+        int[] bases = s.basesMuerteSubita.clone();
+        java.util.Arrays.sort(bases);
+        int proximo = s.proximo(local);
+        int atras = 1;
+        for (int i = bases.length - 1; i >= 0; i--) {
+            int base = bases[i];
+            if (base < 1 || base > 3) {
+                continue;
+            }
+            int orden = Math.floorMod(proximo - 1 - atras, 9) + 1;
+            s.bases[base] = a.bateadorEn(local, orden);
+            atras++;
+        }
     }
 
     /** Final del partido: deja la situación limpia (la tabla no admite 3 outs). */

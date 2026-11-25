@@ -6,6 +6,7 @@ import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PartidoDetalleDto;
 import com.ligabeisbolcartagena.main.dominio.Jugada;
 import com.ligabeisbolcartagena.main.dominio.Lanzamiento;
 import com.ligabeisbolcartagena.main.dominio.Mitad;
+import com.ligabeisbolcartagena.main.dominio.Partido;
 import com.ligabeisbolcartagena.main.dominio.Sustitucion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -42,6 +43,18 @@ public final class JuegoDtos {
 
     /** commandId: UUID que genera la app para que un reintento no se aplique dos veces. */
     public record ComandoRequest(@NotBlank(message = "Falta el commandId") @Size(max = 36) String commandId) {
+    }
+
+    /** motivo: retrasado, pospuesto o cancelado (null = suspensión sin motivo). */
+    public record SuspensionRequest(
+            @NotBlank(message = "Falta el commandId") @Size(max = 36) String commandId,
+            Partido.Motivo motivo) {
+    }
+
+    /** El administrador decide: continuar el partido o dejarlo así. */
+    public record DecisionRequest(
+            @NotBlank(message = "Falta el commandId") @Size(max = 36) String commandId,
+            @NotNull(message = "Indica si el partido continúa") Boolean continuar) {
     }
 
     public record LanzamientoRequest(

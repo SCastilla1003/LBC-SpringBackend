@@ -24,7 +24,8 @@ public final class PartidoDtos {
 
     public record PartidoResumenDto(Long id, Long temporadaId, LocalDateTime fechaHora, Partido.Estado estado,
                                     EstadioDto estadio, EquipoResumen equipoLocal, EquipoResumen equipoVisita,
-                                    ParLocalVisita marcador, Long ganadorId) {
+                                    ParLocalVisita marcador, Long ganadorId, Partido.Motivo motivo,
+                                    Partido.FinalEspecial finalEspecial) {
     }
 
     public record PartidoDetalleDto(Long id, Long temporadaId, LocalDateTime fechaHora, Partido.Estado estado,
@@ -32,7 +33,7 @@ public final class PartidoDtos {
                                     ParLocalVisita marcador, Long ganadorId, int entradasProgramadas,
                                     int entradaActual, Mitad mitad, SituacionDto situacion,
                                     ParLocalVisita hits, ParLocalVisita errores, LineScoreDto lineScore,
-                                    Long version) {
+                                    Long version, Partido.Motivo motivo, Partido.FinalEspecial finalEspecial) {
     }
 
     public record SituacionDto(int outs, int bolas, int strikes, JugadorRef bateador, JugadorRef lanzador,

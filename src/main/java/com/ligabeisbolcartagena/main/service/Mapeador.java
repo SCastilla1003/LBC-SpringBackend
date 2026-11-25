@@ -36,7 +36,7 @@ public class Mapeador {
 
     public TemporadaDto dto(Temporada t) {
         return new TemporadaDto(t.getId(), t.getNombre(), t.getAnio(), t.getEstado(), t.getFechaInicio(),
-                t.getFechaFin());
+                t.getFechaFin(), t.basesMuerteSubita());
     }
 
     public EquipoDto dto(Equipo e) {

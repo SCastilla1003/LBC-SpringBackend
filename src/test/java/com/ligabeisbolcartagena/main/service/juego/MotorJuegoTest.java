@@ -205,4 +205,140 @@ class MotorJuegoTest {
         nuevo.estado = Partido.Estado.SCHEDULED;
         assertThatThrownBy(() -> MotorJuego.lanzamiento(nuevo, Tipo.BALL)).hasMessageContaining("no está en vivo");
     }
+
+    // ------------------------------------------------------------------ walk off y muerte súbita
+
+    /** Baja de la última entrada (de 1) con el marcador [visita]-[local] y las bases dadas. */
+    void bajaDeLaUltima(int visita, int local, Long primera, Long segunda, Long tercera) {
+        s.entradasProgramadas = 1;
+        for (int i = 0; i < 3; i++) {
+            jugada(STRIKEOUT);
+        }
+        assertThat(s.mitad).isEqualTo(Mitad.BOTTOM);
+        s.carrerasVisita = visita;
+        s.carrerasLocal = local;
+        s.bases[1] = primera;
+        s.bases[2] = segunda;
+        s.bases[3] = tercera;
+    }
+
+    @Test
+    void walkOffConSencilloSoloCuentaLaCarreraDelTriunfo() {
+        bajaDeLaUltima(3, 3, 250L, 251L, 252L);
+        MotorJuego.Resumen r = MotorJuego.aplicarJugada(s, DOUBLE, null, 0, ALINEACIONES);
+        assertThat(s.estado).isEqualTo(Partido.Estado.FINISHED);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF);
+        assertThat(s.carrerasLocal).isEqualTo(4);
+        assertThat(r.carreras()).isEqualTo(1);
+        assertThat(r.anotaron()).containsExactly(252L); // el de tercera es el que entra
+        assertThat(r.movimientos()).filteredOn(m -> !m.esOut() && m.hasta() == 4).hasSize(1);
+    }
+
+    @Test
+    void walkOffDesdeAbajoCuentaLasQueHacenFaltaParaGanar() {
+        bajaDeLaUltima(5, 4, 250L, 251L, 252L);
+        MotorJuego.Resumen r = MotorJuego.aplicarJugada(s, TRIPLE, null, 0, ALINEACIONES);
+        assertThat(r.carreras()).isEqualTo(2);
+        assertThat(s.carrerasLocal).isEqualTo(6);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF);
+    }
+
+    @Test
+    void walkOffGrandSlamAnotanLosCuatro() {
+        bajaDeLaUltima(5, 3, 250L, 251L, 252L);
+        MotorJuego.Resumen r = MotorJuego.aplicarJugada(s, HOME_RUN, null, 0, ALINEACIONES);
+        assertThat(r.carreras()).isEqualTo(4);
+        assertThat(s.carrerasLocal).isEqualTo(7);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF_GRAND_SLAM);
+    }
+
+    @Test
+    void walkOffHomeRunSolitario() {
+        bajaDeLaUltima(2, 2, null, null, null);
+        jugada(HOME_RUN);
+        assertThat(s.estado).isEqualTo(Partido.Estado.FINISHED);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF_HOME_RUN);
+    }
+
+    @Test
+    void walkOffConWildPitchYElevadoDeSacrificio() {
+        bajaDeLaUltima(1, 1, 250L, null, 252L);
+        MotorJuego.Resumen r = MotorJuego.aplicarJugada(s, WILD_PITCH, null, 0, ALINEACIONES);
+        assertThat(r.carreras()).isEqualTo(1);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF);
+
+        iniciar();
+        bajaDeLaUltima(0, 0, null, null, 252L);
+        jugada(SACRIFICE_FLY);
+        assertThat(s.estado).isEqualTo(Partido.Estado.FINISHED);
+        assertThat(s.carrerasLocal).isEqualTo(1);
+        assertThat(s.finalEspecial).isEqualTo(Partido.FinalEspecial.WALK_OFF);
+    }
+
+    @Test
+    void siElLocalSoloEmpataNoSeAcaba() {
+        bajaDeLaUltima(2, 1, null, null, 252L);
+        jugada(SINGLE);
+        assertThat(s.estado).isEqualTo(Partido.Estado.LIVE);
+        assertThat(s.finalEspecial).isNull();
+    }
+
+    @Test
+    void muerteSubitaPoneEnSegundaAlUltimoQueBateo() {
+        s.entradasProgramadas = 1;
+        s.basesMuerteSubita = new int[]{2};
+        jugada(SINGLE);    // 101
+        jugada(STRIKEOUT); // 102
+        jugada(STRIKEOUT); // 103
+        jugada(STRIKEOUT); // 104: fin de la alta, el próximo visitante es el 5
+        for (int i = 0; i < 3; i++) {
+            jugada(STRIKEOUT); // 201, 202, 203
+        }
+        assertThat(s.entrada).isEqualTo(2);
+        assertThat(s.mitad).isEqualTo(Mitad.TOP);
+        assertThat(s.bateador).isEqualTo(105L);
+        assertThat(s.bases[2]).isEqualTo(104L);
+        assertThat(s.bases[1]).isNull();
+        assertThat(s.bases[3]).isNull();
+        for (int i = 0; i < 3; i++) {
+            jugada(STRIKEOUT); // 105, 106, 107
+        }
+        assertThat(s.mitad).isEqualTo(Mitad.BOTTOM);
+        assertThat(s.bases[2]).isEqualTo(203L); // el local también
+    }
+
+    @Test
+    void muerteSubitaConDosCorredoresElDeAdelanteEsElUltimoQueBateo() {
+        s.entradasProgramadas = 1;
+        s.basesMuerteSubita = new int[]{1, 2};
+        for (int i = 0; i < 6; i++) {
+            jugada(STRIKEOUT); // visitantes 101-103, locales 201-203
+        }
+        assertThat(s.bases[2]).isEqualTo(103L);
+        assertThat(s.bases[1]).isEqualTo(102L);
+    }
+
+    @Test
+    void muerteSubitaDaLaVueltaAlOrden() {
+        s.entradasProgramadas = 1;
+        s.basesMuerteSubita = new int[]{2, 3};
+        s.proximoVisita = 8;
+        s.bateador = 108L;
+        for (int i = 0; i < 6; i++) {
+            jugada(STRIKEOUT); // visitantes 108, 109, 101 | locales 201, 202, 203
+        }
+        // En la 2 abre el 102: en tercera el último que bateó (101) y en segunda el anterior (109).
+        assertThat(s.bateador).isEqualTo(102L);
+        assertThat(s.bases[3]).isEqualTo(101L);
+        assertThat(s.bases[2]).isEqualTo(109L);
+    }
+
+    @Test
+    void sinMuerteSubitaConfiguradaLasBasesEmpiezanVacias() {
+        s.entradasProgramadas = 1;
+        for (int i = 0; i < 6; i++) {
+            jugada(STRIKEOUT);
+        }
+        assertThat(s.bases).containsOnlyNulls();
+    }
 }

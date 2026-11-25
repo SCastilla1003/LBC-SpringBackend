@@ -137,6 +137,9 @@ public class PartidoService {
             acumulados.computeIfAbsent(p.getEquipoVisita().getId(), k -> new Acumulado());
         }
         for (Partido p : partidos.findByTemporadaIdAndEstado(temporadaId, Partido.Estado.FINISHED)) {
+            if (p.getCarrerasLocal() == p.getCarrerasVisita()) {
+                continue; // detenido empatado y dejado así: sin resultado
+            }
             Acumulado local = acumulados.get(p.getEquipoLocal().getId());
             Acumulado visita = acumulados.get(p.getEquipoVisita().getId());
             local.registrar(p.getCarrerasLocal(), p.getCarrerasVisita());
@@ -178,7 +181,8 @@ public class PartidoService {
         return new PartidoResumenDto(p.getId(), p.getTemporada().getId(), p.getFechaHora(), p.getEstado(),
                 p.getEstadio() == null ? null : mapeador.dto(p.getEstadio()),
                 mapeador.res(p.getEquipoLocal()), mapeador.res(p.getEquipoVisita()),
-                new ParLocalVisita(p.getCarrerasLocal(), p.getCarrerasVisita()), ganadorId(p));
+                new ParLocalVisita(p.getCarrerasLocal(), p.getCarrerasVisita()), ganadorId(p), p.getMotivo(),
+                p.getFinalEspecial());
     }
 
     PartidoDetalleDto detalle(Partido p) {
@@ -200,7 +204,7 @@ public class PartidoService {
                 new ParLocalVisita(p.getErroresLocal(), p.getErroresVisita()),
                 LineScoreBuilder.construir(p.getEntradasProgramadas(), p.getEstado(), p.getEntradaActual(),
                         p.getMitad(), carreras),
-                p.getVersion());
+                p.getVersion(), p.getMotivo(), p.getFinalEspecial());
     }
 
     private static Long ganadorId(Partido p) {
