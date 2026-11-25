@@ -57,6 +57,13 @@ import java.util.Optional;
 @Service
 public class JuegoService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final PartidoRepository partidos;
     private final PartidoService partidoService;
     private final PosicionAlineacionRepository alineaciones;
@@ -374,6 +381,8 @@ public class JuegoService {
         }
         partidos.save(p);
         partidos.flush();
+        auditoria.registrar("DESHACER", "Partido", id,
+                PartidoService.nombre(p) + ": deshizo \"" + ultima.getDescripcion() + "\"", null, null);
         return estado(id);
     }
 
@@ -407,6 +416,18 @@ public class JuegoService {
         partidos.save(p);
         acciones.save(a);
         partidos.flush();
+        String accionAuditada = switch (tipo) {
+            case "INICIO" -> "INICIAR";
+            case "FIN" -> "FINALIZAR";
+            case "SUSPENSION" -> "DETENER";
+            case "REANUDACION" -> "REANUDAR";
+            case "DECISION" -> "DECIDIR";
+            default -> null;
+        };
+        if (accionAuditada != null) {
+            auditoria.registrar(accionAuditada, "Partido", id, PartidoService.nombre(p) + ": " + a.getDescripcion(),
+                    null, null);
+        }
         return estado(id);
     }
 

@@ -24,6 +24,13 @@ import java.util.stream.Stream;
 @Service
 public class EquipoService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final EquipoRepository equipos;
     private final PlantillaRepository plantillas;
     private final TemporadaRepository temporadas;
@@ -55,22 +62,29 @@ public class EquipoService {
     public EquipoDto crear(EquipoRequest req) {
         Equipo e = new Equipo();
         aplicar(e, req, null);
-        return mapeador.dto(equipos.save(e));
+        var dto = mapeador.dto(equipos.save(e));
+        auditoria.registrar("CREAR", "Equipo", dto.id(), "Creó el equipo " + dto.nombre(), null, dto);
+        return dto;
     }
 
     @Transactional
     public EquipoDto actualizar(Long id, EquipoRequest req) {
         Equipo e = buscar(id);
+        var antes = mapeador.dto(e);
         aplicar(e, req, id);
-        return mapeador.dto(equipos.save(e));
+        var dto = mapeador.dto(equipos.save(e));
+        auditoria.registrar("EDITAR", "Equipo", id, "Editó el equipo " + dto.nombre(), antes, dto);
+        return dto;
     }
 
     @Transactional
     public void eliminar(Long id) {
         Equipo e = buscar(id);
+        var antes = mapeador.dto(e);
         try {
             equipos.delete(e);
             equipos.flush();
+            auditoria.registrar("ELIMINAR", "Equipo", id, "Eliminó el equipo " + antes.nombre(), antes, null);
         } catch (DataIntegrityViolationException ex) {
             throw Errores.relacionado();
         }
@@ -103,6 +117,8 @@ public class EquipoService {
             throw ApiException.conflicto(e.getNombre() + " ya está inscrito en esta temporada");
         }
         inscripciones.save(new InscripcionEquipo(t, e));
+        auditoria.registrar("INSCRIBIR", "Equipo", equipoId,
+                "Inscribió a " + e.getNombre() + " en la temporada " + t.getNombre() + " " + t.getAnio(), null, null);
         return mapeador.res(e);
     }
 
@@ -119,6 +135,8 @@ public class EquipoService {
             throw ApiException.conflicto(e.getNombre() + " tiene partidos en esta temporada");
         }
         inscripciones.findByTemporadaIdAndEquipoId(temporadaId, equipoId).ifPresent(inscripciones::delete);
+        auditoria.registrar("DESINSCRIBIR", "Equipo", equipoId,
+                "Sacó a " + e.getNombre() + " de la temporada " + temporadaId, null, null);
     }
 
     Equipo buscar(Long id) {

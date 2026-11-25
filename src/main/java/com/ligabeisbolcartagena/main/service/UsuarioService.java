@@ -17,6 +17,13 @@ import java.util.Locale;
 @Service
 public class UsuarioService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final UsuarioCuentaRepository usuarios;
 
     public UsuarioService(UsuarioCuentaRepository usuarios) {
@@ -42,8 +49,15 @@ public class UsuarioService {
         if (cuenta.getUsername().equals(solicitante) && nuevo != cuenta.getRol()) {
             throw ApiException.conflicto("No puedes cambiar tu propio rol. Pídele a otro administrador que lo haga.");
         }
+        String rolAntes = cuenta.getRol().name();
         cuenta.setRol(nuevo);
-        return dto(usuarios.save(cuenta));
+        var dto = dto(usuarios.save(cuenta));
+        if (!rolAntes.equals(nuevo.name())) {
+            auditoria.registrar("CAMBIAR_ROL", "Usuario", id,
+                    "Cambió el rol de " + cuenta.getUsername() + " de " + rolAntes + " a " + nuevo.name(),
+                    java.util.Map.of("rol", rolAntes), java.util.Map.of("rol", nuevo.name()));
+        }
+        return dto;
     }
 
     static UsuarioAdminDto dto(UsuarioCuenta c) {

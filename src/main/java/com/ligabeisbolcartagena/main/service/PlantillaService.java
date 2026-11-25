@@ -23,6 +23,13 @@ import java.util.List;
 @Service
 public class PlantillaService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final PlantillaRepository plantillas;
     private final TemporadaRepository temporadas;
     private final JugadorRepository jugadores;
@@ -74,16 +81,28 @@ public class PlantillaService {
         p.setEquipo(equipoOpcional(req.equipoId()));
         p.setNumero(req.numero());
         p.setPosicion(req.posicion());
-        return mapeador.dto(plantillas.save(p));
+        var dto = mapeador.dto(plantillas.save(p));
+        auditoria.registrar("INSCRIBIR", "Plantilla", dto.id(), "Inscribió a "
+                + AuditoriaService.nombre(jugador.getNombres(), jugador.getApellidos()) + " en "
+                + (p.getEquipo() == null ? "agentes libres" : p.getEquipo().getNombre()), null, dto);
+        return dto;
     }
 
     @Transactional
     public PlantillaDto actualizar(Long temporadaId, Long entradaId, PlantillaActualizacion req) {
         Plantilla p = buscar(temporadaId, entradaId);
+        var antes = mapeador.dto(p);
+        String equipoAntes = p.getEquipo() == null ? "agentes libres" : p.getEquipo().getNombre();
         p.setEquipo(equipoOpcional(req.equipoId()));
         p.setNumero(req.numero());
         p.setPosicion(req.posicion());
-        return mapeador.dto(plantillas.save(p));
+        var dto = mapeador.dto(plantillas.save(p));
+        String equipoAhora = p.getEquipo() == null ? "agentes libres" : p.getEquipo().getNombre();
+        String quien = AuditoriaService.nombre(p.getJugador().getNombres(), p.getJugador().getApellidos());
+        auditoria.registrar(equipoAntes.equals(equipoAhora) ? "EDITAR" : "MOVER", "Plantilla", entradaId,
+                equipoAntes.equals(equipoAhora) ? "Editó a " + quien + " en " + equipoAhora
+                        : "Movió a " + quien + " de " + equipoAntes + " a " + equipoAhora, antes, dto);
+        return dto;
     }
 
     @Transactional
@@ -92,9 +111,14 @@ public class PlantillaService {
         if (alineaciones.countByJugadorIdAndPartidoTemporadaId(p.getJugador().getId(), temporadaId) > 0) {
             throw ApiException.conflicto("El jugador ya aparece en alineaciones de esta temporada");
         }
+        var antes = mapeador.dto(p);
         try {
             plantillas.delete(p);
             plantillas.flush();
+            auditoria.registrar("QUITAR", "Plantilla", entradaId, "Quitó a "
+                    + AuditoriaService.nombre(p.getJugador().getNombres(), p.getJugador().getApellidos())
+                    + " del roster de " + (p.getEquipo() == null ? "agentes libres" : p.getEquipo().getNombre()),
+                    antes, null);
         } catch (DataIntegrityViolationException e) {
             throw Errores.relacionado();
         }

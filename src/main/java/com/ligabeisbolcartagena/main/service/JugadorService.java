@@ -14,6 +14,13 @@ import java.util.List;
 @Service
 public class JugadorService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final JugadorRepository jugadores;
     private final Mapeador mapeador;
 
@@ -36,22 +43,32 @@ public class JugadorService {
     public JugadorDto crear(JugadorRequest req) {
         Jugador j = new Jugador();
         aplicar(j, req);
-        return mapeador.dto(jugadores.save(j));
+        var dto = mapeador.dto(jugadores.save(j));
+        auditoria.registrar("CREAR", "Jugador", dto.id(),
+                "Creó al jugador " + AuditoriaService.nombre(dto.nombres(), dto.apellidos()), null, dto);
+        return dto;
     }
 
     @Transactional
     public JugadorDto actualizar(Long id, JugadorRequest req) {
         Jugador j = buscar(id);
+        var antes = mapeador.dto(j);
         aplicar(j, req);
-        return mapeador.dto(jugadores.save(j));
+        var dto = mapeador.dto(jugadores.save(j));
+        auditoria.registrar("EDITAR", "Jugador", id,
+                "Editó al jugador " + AuditoriaService.nombre(dto.nombres(), dto.apellidos()), antes, dto);
+        return dto;
     }
 
     @Transactional
     public void eliminar(Long id) {
         Jugador j = buscar(id);
+        var antes = mapeador.dto(j);
         try {
             jugadores.delete(j);
             jugadores.flush();
+            auditoria.registrar("ELIMINAR", "Jugador", id,
+                    "Eliminó al jugador " + AuditoriaService.nombre(antes.nombres(), antes.apellidos()), antes, null);
         } catch (DataIntegrityViolationException e) {
             throw Errores.relacionado();
         }

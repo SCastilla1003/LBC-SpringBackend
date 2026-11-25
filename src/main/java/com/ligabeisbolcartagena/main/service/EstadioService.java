@@ -15,6 +15,13 @@ import java.util.Map;
 @Service
 public class EstadioService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final EstadioRepository estadios;
     private final Mapeador mapeador;
 
@@ -37,22 +44,29 @@ public class EstadioService {
     public EstadioDto crear(EstadioRequest req) {
         Estadio e = new Estadio();
         aplicar(e, req, null);
-        return mapeador.dto(estadios.save(e));
+        var dto = mapeador.dto(estadios.save(e));
+        auditoria.registrar("CREAR", "Estadio", dto.id(), "Creó el estadio " + dto.nombre(), null, dto);
+        return dto;
     }
 
     @Transactional
     public EstadioDto actualizar(Long id, EstadioRequest req) {
         Estadio e = buscar(id);
+        var antes = mapeador.dto(e);
         aplicar(e, req, id);
-        return mapeador.dto(estadios.save(e));
+        var dto = mapeador.dto(estadios.save(e));
+        auditoria.registrar("EDITAR", "Estadio", id, "Editó el estadio " + dto.nombre(), antes, dto);
+        return dto;
     }
 
     @Transactional
     public void eliminar(Long id) {
         Estadio e = buscar(id);
+        var antes = mapeador.dto(e);
         try {
             estadios.delete(e);
             estadios.flush();
+            auditoria.registrar("ELIMINAR", "Estadio", id, "Eliminó el estadio " + antes.nombre(), antes, null);
         } catch (DataIntegrityViolationException ex) {
             throw Errores.relacionado();
         }

@@ -24,6 +24,13 @@ import java.time.Clock;
 @Service
 public class FotoService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     /** Tamaño máximo de una imagen ya comprimida por la app. */
     static final int MAX_BYTES = 5 * 1024 * 1024;
 
@@ -61,7 +68,20 @@ public class FotoService {
         Jugador j = jugador(id);
         guardar(claveJugador(id), datos);
         j.setFotoUrl("/api/v1/jugadores/" + id + "/foto?v=" + reloj.millis());
+        auditoria.registrar("SUBIR_FOTO", "Jugador", id,
+                "Cambió la foto de " + j.getNombres() + " " + j.getApellidos(), null, null);
         return mapeador.dto(jugadores.save(j));
+    }
+
+    /** Borra el archivo de la foto de un jugador que se elimina por completo (si no está, nada). */
+    void borrarArchivoJugador(Long id) {
+        if (almacen.disponible()) {
+            try {
+                almacen.borrar(claveJugador(id));
+            } catch (RuntimeException e) {
+                // Sin foto guardada: no hay nada que borrar.
+            }
+        }
     }
 
     @Transactional
@@ -71,6 +91,8 @@ public class FotoService {
             almacen.borrar(claveJugador(id));
         }
         j.setFotoUrl(null);
+        auditoria.registrar("BORRAR_FOTO", "Jugador", id,
+                "Quitó la foto de " + j.getNombres() + " " + j.getApellidos(), null, null);
         return mapeador.dto(jugadores.save(j));
     }
 
@@ -85,6 +107,7 @@ public class FotoService {
         Equipo e = equipo(id);
         guardar(claveEquipo(id), datos);
         e.setEscudoUrl("/api/v1/equipos/" + id + "/escudo?v=" + reloj.millis());
+        auditoria.registrar("SUBIR_FOTO", "Equipo", id, "Cambió el escudo de " + e.getNombre(), null, null);
         return mapeador.dto(equipos.save(e));
     }
 
@@ -95,6 +118,7 @@ public class FotoService {
             almacen.borrar(claveEquipo(id));
         }
         e.setEscudoUrl(null);
+        auditoria.registrar("BORRAR_FOTO", "Equipo", id, "Quitó el escudo de " + e.getNombre(), null, null);
         return mapeador.dto(equipos.save(e));
     }
 

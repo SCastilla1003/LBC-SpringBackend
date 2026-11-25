@@ -1,11 +1,13 @@
 package com.ligabeisbolcartagena.main.api.controller;
 
+import com.ligabeisbolcartagena.main.api.dto.AuditoriaDtos.ImpactoDto;
 import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PartidoActualizacion;
 import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PartidoDetalleDto;
 import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PartidoRequest;
 import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PartidoResumenDto;
 import com.ligabeisbolcartagena.main.api.dto.PartidoDtos.PosicionDto;
 import com.ligabeisbolcartagena.main.dominio.Partido;
+import com.ligabeisbolcartagena.main.service.BorradoService;
 import com.ligabeisbolcartagena.main.service.PartidoService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,9 +31,11 @@ import java.util.List;
 public class PartidoController {
 
     private final PartidoService partidos;
+    private final BorradoService borrado;
 
-    public PartidoController(PartidoService partidos) {
+    public PartidoController(PartidoService partidos, BorradoService borrado) {
         this.partidos = partidos;
+        this.borrado = borrado;
     }
 
     @GetMapping("/temporadas/{temporadaId}/partidos")
@@ -67,7 +71,17 @@ public class PartidoController {
 
     @DeleteMapping("/partidos/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        partidos.eliminar(id);
+    public void eliminar(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean completo) {
+        if (completo) {
+            borrado.eliminarPartido(id);
+        } else {
+            partidos.eliminar(id);
+        }
+    }
+
+    /** Lo que se borraría con "eliminar por completo". Solo ADMIN. */
+    @GetMapping("/partidos/{id}/impacto")
+    public ImpactoDto impacto(@PathVariable Long id) {
+        return borrado.impactoPartido(id);
     }
 }

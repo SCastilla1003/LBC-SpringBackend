@@ -112,6 +112,8 @@ Un jugador existe una sola vez. Su pertenencia a un equipo es por temporada (pla
 | POST | `/jugadores` | ADMIN | Crea |
 | PUT | `/jugadores/{id}` | ADMIN | Edita |
 | DELETE | `/jugadores/{id}` | ADMIN | `409` si tiene jugadas, plantillas o alineaciones |
+| DELETE | `/jugadores/{id}?completo=true` | ADMIN | Lo borra con sus inscripciones, alineaciones, jugadas, lanzamientos y cambios. `409` si está en un partido en juego |
+| GET | `/jugadores/{id}/impacto` | ADMIN | Lo que se borraría: `{nombre, inscripciones, alineaciones, partidos, jugadas, lanzamientos, cambios, enJuego}` |
 | GET | `/temporadas/{id}/equipos/{equipoId}/plantilla` | Público | Plantilla del equipo |
 | GET | `/temporadas/{id}/agentes-libres` | Público | Jugadores sin equipo en la temporada |
 | POST | `/temporadas/{id}/plantilla` | ADMIN | Inscribe un jugador |
@@ -171,6 +173,8 @@ Estadio: `{ "id": 2, "nombre": "Parque de Pelota El Laguito", "ubicacion": "Cart
 | POST | `/temporadas/{id}/partidos` | ADMIN | Crea (`SCHEDULED`) |
 | PUT | `/partidos/{id}` | ADMIN | Edita fecha, estadio o entradas |
 | DELETE | `/partidos/{id}` | ADMIN | Solo si está `SCHEDULED` |
+| DELETE | `/partidos/{id}?completo=true` | ADMIN | En cualquier estado, con su alineación, jugadas, lanzamientos y cambios |
+| GET | `/partidos/{id}/impacto` | ADMIN | Lo que se borraría (mismo formato que el del jugador) |
 | GET | `/temporadas/{id}/posiciones` | Público | Tabla de posiciones |
 
 Partido (lista, resumen):
@@ -325,6 +329,17 @@ ganador, el último lanzador del equipo ganador antes de esa jugada (o su abrido
 
 Jugador: `lanza` es la mano con la que lanza (D/Z) y `esLanzador` indica si es pitcher (solo los pitchers
 pueden ser lanzador inicial o relevista en la alineación).
+
+## 8d. Registro de auditoría
+
+| Método | Ruta | Rol | Notas |
+|---|---|---|---|
+| GET | `/auditoria?entidad=&texto=&pagina=0&tamano=50` | ADMIN | Lo más reciente primero. `entidad`: `Jugador`, `Partido`, `Plantilla`, `Alineacion`, `Equipo`, `Temporada`, `Estadio`, `Usuario`. `texto` busca en la descripción y el usuario |
+
+Respuesta: `{registros: [{id, fecha, usuario, accion, entidad, entidadId, descripcion, antes, despues}], pagina, hayMas}`.
+`antes` y `despues` son los datos en JSON (texto). Acciones: `CREAR, EDITAR, ELIMINAR, ELIMINAR_COMPLETO, INSCRIBIR,
+DESINSCRIBIR, MOVER, QUITAR, GUARDAR, PUBLICAR, CAMBIAR_ROL, SUBIR_FOTO, BORRAR_FOTO, INICIAR, FINALIZAR, DETENER,
+REANUDAR, DECIDIR, DESHACER`. Los lanzamientos y jugadas no se registran aquí: están en el jugada a jugada.
 
 ## 9. Predicción
 

@@ -38,6 +38,13 @@ import java.util.Map;
 @Service
 public class PartidoService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final PartidoRepository partidos;
     private final TemporadaRepository temporadas;
     private final EquipoRepository equipos;
@@ -89,7 +96,9 @@ public class PartidoService {
         p.setEstadio(estadioOpcional(req.estadioId()));
         p.setEntradasProgramadas(req.entradasProgramadas() == null ? 9 : req.entradasProgramadas());
         p.setEstado(Partido.Estado.SCHEDULED);
-        return detalle(partidos.save(p));
+        var dto = detalle(partidos.save(p));
+        auditoria.registrar("CREAR", "Partido", dto.id(), "Programó el partido " + nombre(p), null, dto);
+        return dto;
     }
 
     @Transactional
@@ -98,6 +107,7 @@ public class PartidoService {
         if (p.getEstado() != Partido.Estado.SCHEDULED && p.getEstado() != Partido.Estado.LINEUP_PUBLISHED) {
             throw ApiException.conflicto("El partido ya empezó o terminó; no se puede editar");
         }
+        var antes = detalle(p);
         if (req.fechaHora() != null) {
             p.setFechaHora(req.fechaHora());
         }
@@ -107,18 +117,23 @@ public class PartidoService {
         if (req.entradasProgramadas() != null) {
             p.setEntradasProgramadas(req.entradasProgramadas());
         }
-        return detalle(partidos.save(p));
+        var dto = detalle(partidos.save(p));
+        auditoria.registrar("EDITAR", "Partido", id, "Movió o editó el partido " + nombre(p), antes, dto);
+        return dto;
     }
 
     @Transactional
     public void eliminar(Long id) {
         Partido p = buscar(id);
         if (p.getEstado() != Partido.Estado.SCHEDULED) {
-            throw ApiException.conflicto("Solo se pueden borrar partidos programados");
+            throw ApiException.conflicto("Solo se pueden borrar partidos programados. Para borrar uno que ya "
+                    + "empezó o terminó, elimínalo por completo.");
         }
+        var antes = detalle(p);
         try {
             partidos.delete(p);
             partidos.flush();
+            auditoria.registrar("ELIMINAR", "Partido", id, "Eliminó el partido " + nombre(p), antes, null);
         } catch (DataIntegrityViolationException e) {
             throw Errores.relacionado();
         }
@@ -205,6 +220,12 @@ public class PartidoService {
                 LineScoreBuilder.construir(p.getEntradasProgramadas(), p.getEstado(), p.getEntradaActual(),
                         p.getMitad(), carreras),
                 p.getVersion(), p.getMotivo(), p.getFinalEspecial());
+    }
+
+    /** "BOS @ NYY del 2026-11-24". */
+    static String nombre(Partido p) {
+        return p.getEquipoVisita().getAbreviatura() + " @ " + p.getEquipoLocal().getAbreviatura() + " del "
+                + p.getFechaHora().toLocalDate();
     }
 
     private static Long ganadorId(Partido p) {

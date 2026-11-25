@@ -38,6 +38,13 @@ import java.util.Set;
 @Service
 public class AlineacionService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     static final String POSICION_LANZADOR = "P";
     static final String POSICION_DH = "DH";
 
@@ -103,7 +110,10 @@ public class AlineacionService {
             p.setEstado(Partido.Estado.LINEUP_PUBLISHED);
             partidos.save(p);
         }
-        return obtener(partidoId, true);
+        var dto = obtener(partidoId, true);
+        auditoria.registrar(req.publicar() ? "PUBLICAR" : "GUARDAR", "Alineacion", partidoId,
+                (req.publicar() ? "Publicó" : "Guardó") + " la alineación de " + PartidoService.nombre(p), null, dto);
+        return dto;
     }
 
     private void construir(Partido p, Equipo equipo, EquipoAlineacionRequest eq, List<Plantilla> plantilla,

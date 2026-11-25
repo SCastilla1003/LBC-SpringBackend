@@ -15,6 +15,13 @@ import java.util.Map;
 @Service
 public class TemporadaService {
 
+    private AuditoriaService auditoria = AuditoriaService.NINGUNA;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAuditoria(AuditoriaService auditoria) {
+        this.auditoria = auditoria;
+    }
+
     private final TemporadaRepository temporadas;
     private final Mapeador mapeador;
 
@@ -45,23 +52,31 @@ public class TemporadaService {
         validar(req, null);
         Temporada t = new Temporada();
         aplicar(t, req);
-        return mapeador.dto(temporadas.save(t));
+        var dto = mapeador.dto(temporadas.save(t));
+        auditoria.registrar("CREAR", "Temporada", dto.id(), "Creó la temporada " + dto.nombre() + " " + dto.anio(), null, dto);
+        return dto;
     }
 
     @Transactional
     public TemporadaDto actualizar(Long id, TemporadaRequest req) {
         Temporada t = buscar(id);
         validar(req, id);
+        var antes = mapeador.dto(t);
         aplicar(t, req);
-        return mapeador.dto(temporadas.save(t));
+        var dto = mapeador.dto(temporadas.save(t));
+        auditoria.registrar("EDITAR", "Temporada", id, "Editó la temporada " + dto.nombre() + " " + dto.anio(), antes, dto);
+        return dto;
     }
 
     @Transactional
     public void eliminar(Long id) {
         Temporada t = buscar(id);
+        var antes = mapeador.dto(t);
         try {
             temporadas.delete(t);
             temporadas.flush();
+            auditoria.registrar("ELIMINAR", "Temporada", id, "Eliminó la temporada " + antes.nombre() + " " + antes.anio(),
+                    antes, null);
         } catch (DataIntegrityViolationException e) {
             throw Errores.relacionado();
         }

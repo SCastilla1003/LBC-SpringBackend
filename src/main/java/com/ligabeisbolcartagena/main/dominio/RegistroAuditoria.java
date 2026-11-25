@@ -43,6 +43,12 @@ public class RegistroAuditoria {
     @JdbcTypeCode(SqlTypes.JSON)
     private String despues;
 
+    /** Qué pasó, en palabras ("Eliminó al jugador Giancarlo Stanton"). */
+    private String descripcion;
+
+    /** Usuario que lo hizo, guardado aparte por si la cuenta se borra. */
+    private String usuario;
+
     @Column(insertable = false, updatable = false)
     private LocalDateTime fecha;
 
@@ -60,5 +66,9 @@ public class RegistroAuditoria {
     public void setAntes(String antes) { this.antes = antes; }
     public String getDespues() { return despues; }
     public void setDespues(String despues) { this.despues = despues; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public String getUsuario() { return usuario; }
+    public void setUsuario(String usuario) { this.usuario = usuario; }
     public LocalDateTime getFecha() { return fecha; }
 }

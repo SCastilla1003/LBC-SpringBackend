@@ -69,6 +69,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/prediccion").permitAll()
                 // Los usuarios registrados no son públicos ni para leer.
                 .requestMatchers("/api/v1/usuarios", "/api/v1/usuarios/**").hasRole("ADMIN")
+                // Auditoría y lo que borraría un "eliminar por completo": solo administradores.
+                .requestMatchers("/api/v1/auditoria", "/api/v1/auditoria/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/jugadores/*/impacto", "/api/v1/partidos/*/impacto").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/**").permitAll()
                 .requestMatchers(HttpMethod.PUT, "/api/v1/partidos/*/alineacion").hasAnyRole("ADMIN", "ANOTADOR")
                 .requestMatchers(HttpMethod.POST, "/api/v1/partidos/*/juego/decidir").hasRole("ADMIN")
