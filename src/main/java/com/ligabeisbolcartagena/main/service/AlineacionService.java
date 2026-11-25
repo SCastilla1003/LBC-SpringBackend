@@ -32,12 +32,14 @@ import java.util.Set;
 
 /**
  * Alineaciones de cada partido. El lanzador inicial normalmente no batea (la liga usa DH); si batea,
- * va en el orden de bateo con posición P. Un jugador no puede aparecer dos veces en la alineación.
+ * va en el orden de bateo con posición P, o como DH (regla Ohtani). Un jugador no puede aparecer dos
+ * veces en la alineación ni dos jugadores en la misma posición.
  */
 @Service
 public class AlineacionService {
 
     static final String POSICION_LANZADOR = "P";
+    static final String POSICION_DH = "DH";
 
     private final PartidoRepository partidos;
     private final PlantillaRepository plantillas;
@@ -116,6 +118,7 @@ public class AlineacionService {
 
         Set<Long> usados = new HashSet<>();
         Set<Integer> ordenes = new HashSet<>();
+        Map<String, Integer> posicionesUsadas = new HashMap<>();
         for (int i = 0; i < bateo.size(); i++) {
             BateoRequest b = bateo.get(i);
             String clave = lado + ".bateo[" + i + "]";
@@ -133,6 +136,10 @@ public class AlineacionService {
             }
             if (POSICION_LANZADOR.equals(b.posicion()) && !b.jugadorId().equals(eq.lanzadorInicial())) {
                 errores.put(clave, "la posición P solo puede ser del lanzador inicial");
+            }
+            Integer otro = b.posicion() == null ? null : posicionesUsadas.putIfAbsent(b.posicion(), b.orden());
+            if (otro != null) {
+                errores.put(clave, "la posición " + b.posicion() + " ya la tiene el turno " + otro);
             }
             filas.add(fila(p, equipo, j, b.orden(), b.posicion(), true));
         }
@@ -152,14 +159,21 @@ public class AlineacionService {
             } else if (!lanzador.isEsLanzador()) {
                 errores.put(clave, "el jugador no está marcado como lanzador (pitcher)");
             } else if (usados.contains(lanzador.getId())) {
-                boolean batea = bateo.stream().anyMatch(b -> lanzador.getId().equals(b.jugadorId())
-                        && POSICION_LANZADOR.equals(b.posicion()));
-                if (!batea) {
-                    errores.put(clave, "el lanzador ya está en el orden de bateo con otra posición");
+                // Batea él mismo: como P (sin DH) o como DH (regla Ohtani).
+                PosicionAlineacion propia = filas.stream()
+                        .filter(f -> f.getEquipo() == equipo && f.getJugador().getId().equals(lanzador.getId()))
+                        .findFirst().orElse(null);
+                if (propia == null || !(POSICION_LANZADOR.equals(propia.getPosicion())
+                        || POSICION_DH.equals(propia.getPosicion()))) {
+                    errores.put(clave, "si el lanzador inicial batea, va como P o como DH");
+                } else {
+                    propia.setLanzadorInicial(true);
                 }
             } else {
                 usados.add(lanzador.getId());
-                filas.add(fila(p, equipo, lanzador, null, POSICION_LANZADOR, true));
+                PosicionAlineacion f = fila(p, equipo, lanzador, null, POSICION_LANZADOR, true);
+                f.setLanzadorInicial(true);
+                filas.add(f);
             }
         }
 
@@ -213,7 +227,8 @@ public class AlineacionService {
 
     private JugadorResumen lanzadorInicial(Equipo equipo, List<PosicionAlineacion> filas) {
         return filas.stream()
-                .filter(f -> f.getEquipo().getId().equals(equipo.getId()) && POSICION_LANZADOR.equals(f.getPosicion()))
+                .filter(f -> f.getEquipo().getId().equals(equipo.getId())
+                        && (f.isLanzadorInicial() || POSICION_LANZADOR.equals(f.getPosicion())))
                 .findFirst()
                 .map(f -> mapeador.res(f.getJugador()))
                 .orElse(null);

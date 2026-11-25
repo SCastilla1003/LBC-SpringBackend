@@ -43,7 +43,7 @@ public final class AlineacionActual implements MotorJuego.Alineaciones {
             if (orden != null && orden >= 1 && orden <= 9) {
                 e.orden[orden] = new Turno(orden, f.getJugador().getId(), f.getPosicion());
             }
-            if ("P".equals(f.getPosicion())) {
+            if (f.isLanzadorInicial() || "P".equals(f.getPosicion())) {
                 e.lanzador = f.getJugador().getId();
             }
         }
@@ -63,6 +63,11 @@ public final class AlineacionActual implements MotorJuego.Alineaciones {
             if (orden != null) {
                 e.orden[orden] = new Turno(orden, entra, posicion);
             }
+            return;
+        }
+        if (tipo == Sustitucion.Tipo.PITCHER && orden != null && "DH".equals(e.orden[orden].posicion())) {
+            // Regla Ohtani: deja de lanzar pero sigue bateando como DH.
+            e.lanzador = entra;
             return;
         }
         e.retirados.add(sale);

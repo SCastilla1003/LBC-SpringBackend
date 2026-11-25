@@ -1,5 +1,6 @@
 package com.ligabeisbolcartagena.main.dominio;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,6 +37,10 @@ public class PosicionAlineacion {
 
     private boolean titular;
 
+    /** Es el lanzador inicial (puede estar además en el orden de bateo como P o como DH). */
+    @Column(name = "lanzador_inicial")
+    private boolean lanzadorInicial;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Partido getPartido() { return partido; }
@@ -50,4 +55,6 @@ public class PosicionAlineacion {
     public void setPosicion(String posicion) { this.posicion = posicion; }
     public boolean isTitular() { return titular; }
     public void setTitular(boolean titular) { this.titular = titular; }
+    public boolean isLanzadorInicial() { return lanzadorInicial; }
+    public void setLanzadorInicial(boolean lanzadorInicial) { this.lanzadorInicial = lanzadorInicial; }
 }

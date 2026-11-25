@@ -80,4 +80,26 @@ class AlineacionActualTest {
         assertThat(a.enJuego(true, 260L)).isTrue();
         assertThat(a.enJuego(true, 203L)).isFalse();
     }
+
+    @Test
+    void reglaOhtaniElLanzadorBateaComoDhYSigueBateandoAlSalirDelMonticulo() {
+        Equipo local = equipo(1);
+        List<PosicionAlineacion> l = new ArrayList<>();
+        for (int i = 1; i <= 8; i++) {
+            l.add(fila(local, 200 + i, i, "SS"));
+        }
+        PosicionAlineacion ohtani = fila(local, 217, 9, "DH");
+        ohtani.setLanzadorInicial(true);
+        l.add(ohtani);
+        AlineacionActual a = AlineacionActual.construir(1L, l, List.of());
+        assertThat(a.lanzadorDe(true)).isEqualTo(217L);
+        assertThat(a.bateadorEn(true, 9)).isEqualTo(217L);
+
+        a = AlineacionActual.construir(1L, l, List.of(cambio(Sustitucion.Tipo.PITCHER, 217, 260)));
+        assertThat(a.lanzadorDe(true)).isEqualTo(260L);
+        assertThat(a.bateadorEn(true, 9)).isEqualTo(217L);
+        assertThat(a.orden(true).get(8).posicion()).isEqualTo("DH");
+        assertThat(a.retirado(true, 217L)).isFalse();
+        assertThat(a.enJuego(true, 217L)).isTrue();
+    }
 }
